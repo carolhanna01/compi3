@@ -41,84 +41,84 @@
 
 
 %% /*Rules*/
-Program			:	Enums Funcs{printProductionRule(1);};
+Program			:	Enums Funcs{};
 
-Funcs			:	/*epsilon*/{printProductionRule(2);}
-				|	FuncDecl Funcs{printProductionRule(3);};	
+Funcs			:	/*epsilon*/{}
+				|	FuncDecl Funcs{};	
 			
-FuncDecl		:	RetType ID LPAREN Formals RPAREN LBRACE Statements RBRACE{printProductionRule(4);};
+FuncDecl		:	RetType ID LPAREN Formals RPAREN LBRACE Statements RBRACE{};
 
-Enums			:	/*epsilon*/{printProductionRule(5);};
-				|	EnumDecl Enums{printProductionRule(6);};
+Enums			:	/*epsilon*/{};
+				|	EnumDecl Enums{};
 
-EnumDecl		:	ENUM ID LBRACE EnumeratorList RBRACE SC{printProductionRule(7);};
+EnumDecl		:	ENUM ID LBRACE EnumeratorList RBRACE SC{};
 	
-RetType			:	Type{printProductionRule(8);}
-				|	VOID{printProductionRule(9);};
+RetType			:	Type{}
+				|	VOID{};
 	
-Formals			:	/*epsilon*/{printProductionRule(10);}
-				|	FormalsList{printProductionRule(11);};
+Formals			:	/*epsilon*/{}
+				|	FormalsList{};
 			
-FormalsList		:	FormalDecl{printProductionRule(12);}
-				|	FormalDecl COMMA FormalsList{printProductionRule(13);};
+FormalsList		:	FormalDecl{}
+				|	FormalDecl COMMA FormalsList{};
 	
-FormalDecl 		:	Type ID{printProductionRule(14);}
-				|	EnumType ID{printProductionRule(15);};
+FormalDecl 		:	Type ID{}
+				|	EnumType ID{};
 	
-EnumeratorList	:	Enumerator{printProductionRule(16);}
-				|	EnumeratorList COMMA Enumerator{printProductionRule(17);};
+EnumeratorList	:	Enumerator{}
+				|	EnumeratorList COMMA Enumerator{};
 	
-Enumerator		:	ID{printProductionRule(18);};
+Enumerator		:	ID{};
 	
-Statements		:	Statement{printProductionRule(19);}
-				|	Statements Statement{printProductionRule(20);}
+Statements		:	Statement{}
+				|	Statements Statement{}
 
-Statement		:	LBRACE Statements RBRACE{printProductionRule(21);}
-				|	Type ID SC{printProductionRule(22);}
-				|	EnumType ID SC{printProductionRule(23);}
-				|	EnumDecl{printProductionRule(24);}
-				|	Type ID ASSIGN Exp SC{printProductionRule(25);}
-				|	EnumType ID ASSIGN Exp SC{printProductionRule(26);}
-				|	ID ASSIGN Exp SC{printProductionRule(27);}
-				|	Call SC{printProductionRule(28);}
-				|	RETURN SC{printProductionRule(29);}
-				|	RETURN Exp SC{printProductionRule(30);}
-				|	IF LPAREN Exp RPAREN Statement ELSE Statement{printProductionRule(32);}
-				|	IF LPAREN Exp RPAREN Statement{printProductionRule(31);}
-				|	WHILE LPAREN Exp RPAREN Statement{printProductionRule(33);}
-				|	BREAK SC{printProductionRule(34);}
-				|	CONTINUE SC{printProductionRule(35);};
+Statement		:	LBRACE Statements RBRACE{}
+				|	Type ID SC{}
+				|	EnumType ID SC{}
+				|	EnumDecl{}
+				|	Type ID ASSIGN Exp SC{}
+				|	EnumType ID ASSIGN Exp SC{}
+				|	ID ASSIGN Exp SC{}
+				|	Call SC{}
+				|	RETURN SC{}
+				|	RETURN Exp SC{}
+				|	IF LPAREN Exp RPAREN Statement ELSE Statement{}
+				|	IF LPAREN Exp RPAREN Statement{}
+				|	WHILE LPAREN Exp RPAREN Statement{}
+				|	BREAK SC{}
+				|	CONTINUE SC{};
 	
-Call 			:	ID LPAREN ExpList RPAREN{printProductionRule(36);}
-				|	ID LPAREN RPAREN{printProductionRule(37);};
+Call 			:	ID LPAREN ExpList RPAREN{}
+				|	ID LPAREN RPAREN{};
 	
-ExpList 		:	Exp{printProductionRule(38);}
-				|	Exp COMMA ExpList{printProductionRule(39);};
+ExpList 		:	Exp{}
+				|	Exp COMMA ExpList{};
 	
-Type 			:	INT{printProductionRule(40);}
-				|	BYTE{printProductionRule(41);}
-				|	BOOL{printProductionRule(42);};
+Type 			:	INT{}
+				|	BYTE{}
+				|	BOOL{};
 	
-EnumType 		:	ENUM ID{printProductionRule(43);};
+EnumType 		:	ENUM ID{};
 	
-Exp 			:	LPAREN Exp RPAREN {printProductionRule(44);}
-				|	Exp MUL Exp{printProductionRule(45);}
-				|	Exp DIV Exp{printProductionRule(45);}
-				|	Exp ADD Exp{printProductionRule(45);}
-				|	Exp SUB Exp{printProductionRule(45);}
-				|	ID{printProductionRule(46);}
-				|	Call{printProductionRule(47);}
-				|	NUM{printProductionRule(48);}
-				|	NUM B{printProductionRule(49);}
-				|	STRING{printProductionRule(50);}
-				|	TRUE{printProductionRule(51);}
-				|	FALSE{printProductionRule(52);}
-				|	NOT Exp{printProductionRule(53);}
-				|	Exp AND Exp{printProductionRule(54);}
-				|	Exp OR Exp{printProductionRule(55);}
-				|	Exp EQUALITY Exp{printProductionRule(56);}
-				|	Exp RELATION Exp{printProductionRule(56);}
-				|	LPAREN Type RPAREN Exp{printProductionRule(57);};
+Exp 			:	LPAREN Exp RPAREN {$$= $2;}
+				|	Exp MUL Exp{}
+				|	Exp DIV Exp{}
+				|	Exp ADD Exp{}
+				|	Exp SUB Exp{}
+				|	ID{}
+				|	Call{}
+				|	NUM{}
+				|	NUM B{}
+				|	STRING{}
+				|	TRUE{}
+				|	FALSE{}
+				|	NOT Exp{}
+				|	Exp AND Exp{}
+				|	Exp OR Exp{}
+				|	Exp EQUALITY Exp{}
+				|	Exp RELATION Exp{}
+				|	LPAREN Type RPAREN Exp{};
 %%
 
 main(){
