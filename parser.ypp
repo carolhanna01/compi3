@@ -1,0 +1,142 @@
+%{
+
+	/* Declarations section */
+	#include "output.hpp"
+	#include <iostream>
+	#include <stdlib.h>
+	using namespace output;
+	extern int yylex();
+	int yyerror(const char * message);
+%}
+
+%token	  VOID
+%token    INT
+%token    BYTE
+%token    B
+%token    BOOL
+%token    RETURN 
+%token    WHILE 
+%token    BREAK 
+%token    CONTINUE 
+%token    SC
+%token	  ENUM
+%token    COMMA 
+%token    LBRACE 
+%token    RBRACE 
+%token    ID 
+%token    NUM 
+%token    STRING 
+%right    ASSIGN 
+%left	  OR 
+%left     AND
+%left	  EQUALITY
+%nonassoc RELATION
+%left	  ADD SUB
+%left     MUL DIV
+%right    NOT 
+%left	  LPAREN RPAREN 
+%nonassoc IF 
+%nonassoc ELSE
+%left TRUE FALSE 
+
+
+%% /*Rules*/
+Program			:	Enums Funcs{printProductionRule(1);};
+
+Funcs			:	/*epsilon*/{printProductionRule(2);}
+				|	FuncDecl Funcs{printProductionRule(3);};	
+			
+FuncDecl		:	RetType ID LPAREN Formals RPAREN LBRACE Statements RBRACE{printProductionRule(4);};
+
+Enums			:	/*epsilon*/{printProductionRule(5);};
+				|	EnumDecl Enums{printProductionRule(6);};
+
+EnumDecl		:	ENUM ID LBRACE EnumeratorList RBRACE SC{printProductionRule(7);};
+	
+RetType			:	Type{printProductionRule(8);}
+				|	VOID{printProductionRule(9);};
+	
+Formals			:	/*epsilon*/{printProductionRule(10);}
+				|	FormalsList{printProductionRule(11);};
+			
+FormalsList		:	FormalDecl{printProductionRule(12);}
+				|	FormalDecl COMMA FormalsList{printProductionRule(13);};
+	
+FormalDecl 		:	Type ID{printProductionRule(14);}
+				|	EnumType ID{printProductionRule(15);};
+	
+EnumeratorList	:	Enumerator{printProductionRule(16);}
+				|	EnumeratorList COMMA Enumerator{printProductionRule(17);};
+	
+Enumerator		:	ID{printProductionRule(18);};
+	
+Statements		:	Statement{printProductionRule(19);}
+				|	Statements Statement{printProductionRule(20);}
+
+Statement		:	LBRACE Statements RBRACE{printProductionRule(21);}
+				|	Type ID SC{printProductionRule(22);}
+				|	EnumType ID SC{printProductionRule(23);}
+				|	EnumDecl{printProductionRule(24);}
+				|	Type ID ASSIGN Exp SC{printProductionRule(25);}
+				|	EnumType ID ASSIGN Exp SC{printProductionRule(26);}
+				|	ID ASSIGN Exp SC{printProductionRule(27);}
+				|	Call SC{printProductionRule(28);}
+				|	RETURN SC{printProductionRule(29);}
+				|	RETURN Exp SC{printProductionRule(30);}
+				|	IF LPAREN Exp RPAREN Statement ELSE Statement{printProductionRule(32);}
+				|	IF LPAREN Exp RPAREN Statement{printProductionRule(31);}
+				|	WHILE LPAREN Exp RPAREN Statement{printProductionRule(33);}
+				|	BREAK SC{printProductionRule(34);}
+				|	CONTINUE SC{printProductionRule(35);};
+	
+Call 			:	ID LPAREN ExpList RPAREN{printProductionRule(36);}
+				|	ID LPAREN RPAREN{printProductionRule(37);};
+	
+ExpList 		:	Exp{printProductionRule(38);}
+				|	Exp COMMA ExpList{printProductionRule(39);};
+	
+Type 			:	INT{printProductionRule(40);}
+				|	BYTE{printProductionRule(41);}
+				|	BOOL{printProductionRule(42);};
+	
+EnumType 		:	ENUM ID{printProductionRule(43);};
+	
+Exp 			:	LPAREN Exp RPAREN {printProductionRule(44);}
+				|	Exp MUL Exp{printProductionRule(45);}
+				|	Exp DIV Exp{printProductionRule(45);}
+				|	Exp ADD Exp{printProductionRule(45);}
+				|	Exp SUB Exp{printProductionRule(45);}
+				|	ID{printProductionRule(46);}
+				|	Call{printProductionRule(47);}
+				|	NUM{printProductionRule(48);}
+				|	NUM B{printProductionRule(49);}
+				|	STRING{printProductionRule(50);}
+				|	TRUE{printProductionRule(51);}
+				|	FALSE{printProductionRule(52);}
+				|	NOT Exp{printProductionRule(53);}
+				|	Exp AND Exp{printProductionRule(54);}
+				|	Exp OR Exp{printProductionRule(55);}
+				|	Exp EQUALITY Exp{printProductionRule(56);}
+				|	Exp RELATION Exp{printProductionRule(56);}
+				|	LPAREN Type RPAREN Exp{printProductionRule(57);};
+%%
+
+main(){
+ return yyparse();
+}
+
+int yyerror(const char * message)
+{
+	extern int yylineno;
+	errorSyn(yylineno);
+	exit(0);
+}
+
+
+
+
+
+
+
+
+
