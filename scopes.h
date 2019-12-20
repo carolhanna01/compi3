@@ -40,7 +40,7 @@ public:
 };
 
 
-class scopeTable{
+class scope{
 public:
     vector<variableEntry> variables;
     vector<functionEntry> functions;
