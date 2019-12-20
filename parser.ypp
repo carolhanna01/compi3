@@ -39,6 +39,11 @@
 %nonassoc ELSE
 %left TRUE FALSE 
 
+/*
+	Doneth list - 1, 2, 3, 4, 11, 12, 13
+
+*/ 
+
 
 %% /*Rules*/
 Program			:	Enums Funcs{};
@@ -95,30 +100,35 @@ Call 			:	ID LPAREN ExpList RPAREN{}
 ExpList 		:	Exp{}
 				|	Exp COMMA ExpList{};
 	
-Type 			:	INT{}
-				|	BYTE{}
-				|	BOOL{};
+Type 			:	INT{ $$ = new entry("", "INT") }
+				|	BYTE{ $$ = new entry("", "BYTE") }
+				|	BOOL{ $$ = new entry("", "BOOL") };
 	
 EnumType 		:	ENUM ID{};
 	
 Exp 			:	LPAREN Exp RPAREN {$$= $2;}
-				|	Exp MUL Exp{}
-				|	Exp DIV Exp{}
-				|	Exp ADD Exp{}
-				|	Exp SUB Exp{}
-				|	ID{}
-				|	Call{}
-				|	NUM{}
-				|	NUM B{}
-				|	STRING{}
-				|	TRUE{ $$ = new TableEntry("", "BOOL") }
-				|	FALSE{ $$ = new TableEntry("", "BOOL") }
-				|	NOT Exp{}
-				|	Exp AND Exp{}
-				|	Exp OR Exp{}
-				|	Exp EQUALITY Exp{}
-				|	Exp RELATION Exp{}
-				|	LPAREN Type RPAREN Exp{};
+				|	Exp MUL Exp {$$ = dealWithBinop($1, $2);}
+				|	Exp DIV Exp {$$ = dealWithBinop($1, $2);}
+				|	Exp ADD Exp {$$ = dealWithBinop($1, $2);}
+				|	Exp SUB Exp {$$ = dealWithBinop($1, $2);}
+				|	ID { 
+						//todo - get table top, find variable
+						$$ = new TableEntry("", //todo);
+					}
+				|	Call { 
+
+					}
+				|	NUM {$$ = new TableEntry("", "INT");}
+				|	NUM B {$$ = new TableEntry("", "BYTE");}
+				|	STRING {$$ = new TableEntry("", "STRING");}
+				|	TRUE {$$ = new TableEntry("", "BOOL");}
+				|	FALSE {$$ = new TableEntry("", "BOOL");}
+				|	NOT Exp {$$ = dealWithBoolOutput($2, "BOOL");}
+				|	Exp AND Exp {$$ = dealwithBoolOutput($1, $3, "BOOL");}
+				|	Exp OR Exp {$$ = dealwithBoolOutput($1, $3, "BOOL");}
+				|	Exp EQUALITY Exp {$$ = dealwithBoolOutput($1, $3, "INT");}
+				|	Exp RELATION Exp {$$ = dealwithBoolOutput($1, $3, "INT");}
+				|	LPAREN Type RPAREN Exp{}; //todo HAMARA
 %%
 
 main(){
@@ -132,7 +142,26 @@ int yyerror(const char * message)
 	exit(0);
 }
 
+YYSTYPE dealwithBoolOutput(YYSTYPE left,  YYSTYPE right, string check_for) {
+	if (right && right->type != check_for) {
+		errorMismatch(yylineno);
+		exit(0);
+	}
+	else if (left || right->type != check_for) {
+		errorMismatch(yylineno);
+		exit(0);
+	}
+	return new entry("", "BOOL")
+}
 
+YYSTYPE dealWithBinop(YYSTYPE left, YYSTYPE right) {
+	if ((left->type != "INT" && left->type != "BYTE") || (right->type != "INT" && right->type != "BYTE")) {
+		errorMismatch(yylineno); //TODO check
+		exit(0);
+	}
+	string type = left->type == "BYTE" && right->type == "BYTE" ? "BYTE" : "INT";
+	return new entry("", type);
+}
 
 
 
