@@ -2,51 +2,78 @@
 // Created by Carol Hanna on 15/12/2019.
 //
 
-#ifndef HW3_OUTPUT_CPP_SCOPES_H
-#define HW3_OUTPUT_CPP_SCOPES_H
+
+#include <iostream>
 #include <stack>
 #include <vector>
-#include "hw3_output.hpp"
-using std;
-using output;
+#include "../../Desktop/compi3/hw3_output.hpp"
+extern int yylineno;
 
+using namespace std;
+using namespace output;
 
-#typedef vector<tableEntry> scope;
-#define INT_SIZE 1
-#define BOOL_SIZE 1
+#define functionEntry entry<functionType>
 
-class tableEntry{
+template <typename t>
+class entry{
 public:
-    string name;
-    string type;
+    const string& name;
+    t type;
+    entry(string name, t type):name(name), type(type){};
+};
+
+class functionType{
+public:
+    string returnType;
+    vector<string> paramTypes;
+
+    void addParam(string paramType) {
+        paramTypes.push_back(paramType);
+    }
+};
+
+class variableEntry : public entry<string>{
+public:
     int offset;
-    tableEntry(string name = "", string type = "", int offset = 0) : name(name), string(string), offset(offset) { }
+    variableEntry(string type = "", string name = "", int offset = 0):entry(name, type), offset(offset){}
+
 };
-class scopeTables{
+
+
+class scopeTable{
 public:
-    stack<scope> scopesTable;
-    stack<int> offsetsTable;
+    vector<variableEntry> variables;
+    vector<functionEntry> functions;
 
-    void openScope(){
-        scope newScope;
-        scopesTable.push_back(newScope);
-        int curr_Offset = offsetsTable.top()
-        offsets_Stack.push_back(curr_Offset);
-    }
-
-    void closeScope(){
-        scope toRemove = scopesTable.top();
-        for (int i = 0; i < toRemove.size(); i++){
-
-            printId(toRemove[i].name, )
-            void printID(const string& id, int offset, const string& type);
-
+    variableEntry* getVariable(const string& name){
+        for(int i = 0; i < variables.size(); i++){
+            if(name == variables[i].name){
+                return &variables[i];
+            }
         }
-        scopesTable
-        endScope();
-
-
     }
+    functionEntry* getFunction(const string& name){
+        for(int i = 0; i < functions.size(); i++){
+            if(name == functions[i].name){
+                return &functions[i];
+            }
+        }
+    }
+
+    void insertVariable(string type, string name, int offset){
+        if(getVariable(name) != NULL){
+            errorDef(yylineno, name);
+            exit(0);
+        }
+        variables.push_back(variableEntry(type, name, offset));
+    }
+    void insertFunction(functionEntry f) {
+        if(getVariable(f.name) != NULL){
+            errorDef(yylineno, f.name);
+            exit(0);
+        }
+        functions.push_back(f);
+    }
+
 };
 
-#endif //HW3_OUTPUT_CPP_SCOPES_H
