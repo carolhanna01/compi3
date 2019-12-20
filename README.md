@@ -1,2 +1,2 @@
 # compi3
-Semantic Analysis- FanC Programming Language
+## Semantic Analysis - FanC Programming Language

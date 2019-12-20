@@ -111,8 +111,8 @@ Exp 			:	LPAREN Exp RPAREN {$$= $2;}
 				|	NUM{}
 				|	NUM B{}
 				|	STRING{}
-				|	TRUE{}
-				|	FALSE{}
+				|	TRUE{ $$ = new TableEntry("", "BOOL") }
+				|	FALSE{ $$ = new TableEntry("", "BOOL") }
 				|	NOT Exp{}
 				|	Exp AND Exp{}
 				|	Exp OR Exp{}

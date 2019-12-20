@@ -20,7 +20,7 @@ public:
     string name;
     string type;
     int offset;
-
+    tableEntry(string name = "", string type = "", int offset = 0) : name(name), string(string), offset(offset) { }
 };
 class scopeTables{
 public:
