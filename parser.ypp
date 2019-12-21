@@ -2,9 +2,14 @@
 
 	/* Declarations section */
 	#include "output.hpp"
+	#include "scopes.h"
+
 	#include <iostream>
 	#include <stdlib.h>
+	
 	using namespace output;
+	using namespace scopeTables;
+	
 	extern int yylex();
 	int yyerror(const char * message);
 %}
@@ -86,13 +91,34 @@ Statement		:	LBRACE Statements RBRACE{}
 				|	EnumType ID ASSIGN Exp SC{}
 				|	ID ASSIGN Exp SC{}
 				|	Call SC{}
-				|	RETURN SC{}
-				|	RETURN Exp SC{}
+				|	RETURN SC{
+						if (scopes.top()->currentFunc->returnType != "VOID"){
+							errorMismatch(yylineno);
+							exit(0);
+						}
+					}
+				|	RETURN Exp SC{
+						if (scopes.top()->currentFunc->returnType == "VOID"){
+							errorMismatch(yylineno);
+							exit(0);
+						}
+					}
 				|	IF LPAREN Exp RPAREN Statement ELSE Statement{}
 				|	IF LPAREN Exp RPAREN Statement{}
 				|	WHILE LPAREN Exp RPAREN Statement{}
-				|	BREAK SC{}
-				|	CONTINUE SC{};
+				|	BREAK SC{
+						if(scopes.top()->insideLoop == false){
+							errorUnexpectedBreak(yylineno);
+							exit(0);
+						}
+					}
+					
+				|	CONTINUE SC{
+						if(scopes.top()->insideLoop == false){
+							errorUnexpectedContinue(yylineno);
+							exit(0);
+						}
+				};
 	
 Call 			:	ID LPAREN ExpList RPAREN{}
 				|	ID LPAREN RPAREN{};
@@ -101,7 +127,8 @@ ExpList 		:	Exp{}
 				|	Exp COMMA ExpList{};
 	
 Type 			:	INT{ $$ = new entry("", "INT") }
-				|	BYTE{ $$ = new entry("", "BYTE") }
+				|	BYTE{ $$ = new entry("", "BYTE")
+							//todo: add errorCheck for byte value (need to add field to entry?)}
 				|	BOOL{ $$ = new entry("", "BOOL") };
 	
 EnumType 		:	ENUM ID{};
@@ -132,7 +159,24 @@ Exp 			:	LPAREN Exp RPAREN {$$= $2;}
 %%
 
 main(){
- return yyparse();
+    //~~~~~~~~~~~~ instancing Tables for handling scopes ~~~~~~~~~~~~//
+
+    //instance & initialize scope stack
+    scope* s = new scope();
+    stack<scope*> scopes = stack<scope*>();
+    scopes.push(s);
+
+    //instance & initialize scope stack
+    stack<int> offsets= stack<int>();
+    offsets.push(0);
+	
+	yyparse();
+	functionEntry* checkMain = tables.top()->getFunction("main");
+
+	if (checkMain == NULL || checkMain->paramTypes.size()!=0 || checkMain->returnType != "VOID"){
+		errorMainMissing();
+		return 0;
+	}
 }
 
 int yyerror(const char * message)

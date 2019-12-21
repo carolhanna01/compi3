@@ -12,68 +12,112 @@ extern int yylineno;
 using namespace std;
 using namespace output;
 
-#define functionEntry entry<functionType>
+#define INT_SIZE 1
+#define BOOL_SIZE 1
+#define startParamOffset =1;
 
-template <typename t>
-class entry{
-public:
-    const string& name;
-    t type;
-    entry(string name, t type):name(name), type(type){};
-};
+namespace scopeTables{
+        template <typename t>
+        class entry{
+            public:
+            const string &name;
+            t type;
+            entry(string name, t type):name(name), type(type){};
+        };
 
-class functionType{
-public:
-    string returnType;
-    vector<string> paramTypes;
+        class functionType{
+            public:
+            string returnType;
+            vector<string> paramTypes;
 
-    void addParam(string paramType) {
-        paramTypes.push_back(paramType);
-    }
-};
-
-class variableEntry : public entry<string>{
-public:
-    int offset;
-    variableEntry(string type = "", string name = "", int offset = 0):entry(name, type), offset(offset){}
-
-};
-
-
-class scope{
-public:
-    vector<variableEntry> variables;
-    vector<functionEntry> functions;
-
-    variableEntry* getVariable(const string& name){
-        for(int i = 0; i < variables.size(); i++){
-            if(name == variables[i].name){
-                return &variables[i];
+            void addParam(string paramType) {
+                paramTypes.push_back(paramType);
             }
-        }
-    }
-    functionEntry* getFunction(const string& name){
-        for(int i = 0; i < functions.size(); i++){
-            if(name == functions[i].name){
-                return &functions[i];
+        };
+
+        class variableEntry :
+        public entry<string>{
+            public:
+            int offset;
+            variableEntry(string
+            type = "", string
+            name = "", int
+            offset = 0):entry(name, type), offset(offset)
+            {}
+
+        };
+        class functionEntry :
+        public entry<functionType>{
+            public:
+            int offset;
+            functionEntry(functionType
+            type, string
+            name = "", int
+            offset = 0):entry(name, type), offset(offset){};
+        };
+
+
+
+    class scope{
+            public:
+
+            vector<variableEntry> variables;
+            vector<functionEntry > functions;
+            bool insideLoop;
+            functionType* currentFunc;
+
+
+            // Constructor
+            scope(bool inLoop){
+            variables = vector<variableEntry>();
+            functions = vector<functionEntry>();
+            insideLoop =inLoop;
+            currentFunc = nullptr;
             }
-        }
-    }
 
-    void insertVariable(string type, string name, int offset){
-        if(getVariable(name) != NULL){
-            errorDef(yylineno, name);
-            exit(0);
-        }
-        variables.push_back(variableEntry(type, name, offset));
-    }
-    void insertFunction(functionEntry f) {
-        if(getVariable(f.name) != NULL){
-            errorDef(yylineno, f.name);
-            exit(0);
-        }
-        functions.push_back(f);
-    }
+            variableEntry* getVariable(const string &name) {
+                for (variableEntry& v : variables) {
+                    if (name == v.name) {
+                        return &v;
+                    }
+                }
+            }
+            functionEntry* getFunction(const string &name) {
+                for (functionEntry& f : functions) {
+                    if (name == f.name) {
+                        return &f;
+                    }
+                }
+            }
 
-};
+            void insertVariable(variableEntry v) {
+                if (getVariable(v.name) != nullptr) {
+                    errorDef(yylineno, v.name);
+                    exit(0);
+                }
+                variables.push_back(variableEntry(v.type, v.name, v.offset));
+            }
+            void insertFunction(functionEntry f) {
+                if (getVariable(f.name) != nullptr) {
+                    errorDef(yylineno, f.name);
+                    exit(0);
+                }
+                functions.push_back(f);
+            }
 
+            void addScope (stack<scope*> scopes, stack<int> offsets){
+                scopes.push(new scope(scopes.top()));
+                offsets.push(offsets.top());
+             }
+
+            void removeScope (stack<scope*> scopes, stack<int> offsets){
+                endScope();
+                //add impl depending on what you need
+            }
+
+        };
+
+
+
+
+}
