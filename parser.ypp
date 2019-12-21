@@ -6,7 +6,7 @@
 
 	#include <iostream>
 	#include <stdlib.h>
-	
+	#include <algorithm>
 	using namespace output;
 	using namespace scopeTables;
 	
@@ -15,6 +15,9 @@
 
 	stack<Scope*> scopes;
 	stack<int> offsets;
+	stack<vector<string> funcParameterStack;
+	functionEntry newFunction = functionEntry();
+
 	YYSTYPE dealWithBinop(YYSTYPE left, YYSTYPE right);
 	YYSTYPE dealwithBoolOutput(YYSTYPE left,  YYSTYPE right, string check_for);
 	bool enumSearch(stack<Scope*> *scopes, string name);
@@ -70,7 +73,14 @@ FuncDecl		:	RetType ID {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
-					} LPAREN Formals RPAREN {addScope();} LBRACE Statements RBRACE {removeScope();};
+						newFunction.name = $2->name;
+						newFunction.type.returnType = $1->type;
+						newFunction.type.paramTypes = vector<string>();
+						addScope();
+					} LPAREN Formals RPAREN LBRACE Statements RBRACE {
+						removeScope();
+						scopes.insertFunction(newFunction);
+					};
 
 Enums			:	/*epsilon*/{};
 				|	EnumDecl Enums {};
@@ -90,14 +100,17 @@ RetType			:	Type {$$ = $1;}
 Formals			:	/*epsilon*/
 				|	FormalsList;
 			
-FormalsList		:	FormalDecl{}
-				|	FormalDecl COMMA FormalsList{};
+FormalsList		:	FormalDecl
+				|	FormalDecl COMMA FormalsList;
 	
 FormalDecl 		:	Type ID {
-						//TODO can var bs func name?							
+						//TODO can var be func name?
+						scopes.top()->insertVariable($1->type, $2->name, /*todo offset*/0);
+						newFunc.type.addParam($1->type);					
 					}
 				|	EnumType ID {
-					
+						scopes.top()->insertVariable($1->type, $2->name, /*todo offset*/0);
+						newFunc.type.addParam($1->type);
 					};
 	
 EnumeratorList	:	Enumerator {$$ = new enumEntry("", vector<string>(1, $1->name));}
@@ -113,8 +126,8 @@ EnumeratorList	:	Enumerator {$$ = new enumEntry("", vector<string>(1, $1->name))
 	
 Enumerator		:	ID;
 	
-Statements		:	Statement{}
-				|	Statements Statement{}
+Statements		:	Statement
+				|	Statements Statement;
 
 Statement		:	LBRACE Statements RBRACE{}
 				|	Type ID SC {
@@ -201,15 +214,37 @@ Statement		:	LBRACE Statements RBRACE{}
 							errorUnexpectedContinue(yylineno);
 							exit(0);
 						}
-				};
-	
-Call 			:	ID LPAREN ExpList RPAREN { }
-				|	ID LPAREN RPAREN {
-
 					};
 	
-ExpList 		:	Exp{}
-				|	Exp COMMA ExpList{};
+Call 			:	ID {
+						funcParameterStack.push(vector<string>());
+					} LPAREN ExpList RPAREN {
+						functionEntry* f = scopes.top()->getFunction($1->name);
+						if(!f) {
+							errorUndefFunc(yylineno, $1->name);
+							exit(0);
+						} else if (equal(f->type.paramTypes.begin(), f->type.paramTypes.end(), funcParameterStack.top.begin())) { 
+							// CHECKS IF PARAMTER TYPES ALIGN WITH FUNCTION TYPES
+							errorPrototypeMismatch(lineno, id, types);
+							exit(0);
+						}
+						funcParameterStack.pop();
+						$$ = new variableEntry("", f->type.returnType);					
+					}
+				|	ID LPAREN RPAREN {
+						functionEntry* f = scopes.top()->getFunction($1->name);
+						if(!f) {
+							errorUndefFunc(yylineno, $1->name);
+							exit(0);
+						} else if (f->type.paramTypes.size() != 0) {
+							errorPrototypeMismatch(lineno, id, types);
+							exit(0);
+						}
+						$$ = new variableEntry("", f->type.returnType);
+					};
+	
+ExpList 		:	Exp {funcParameterStack.top->push_back($1->type);}
+				|	Exp COMMA ExpList {funcParameterStack.top->push_back($1->type);};
 	
 
 Type 			:	INT{$$ = new variableEntry("", "INT");}
