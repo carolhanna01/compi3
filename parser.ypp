@@ -83,27 +83,48 @@ Statements		:	Statement{}
 				|	Statements Statement{}
 
 Statement		:	LBRACE Statements RBRACE{}
-				|	Type ID SC{}
+				|	Type ID SC {
+						if (recursiveSearch(&scopes, $2->name)) {
+							errorDef(yylineno, $2->name);
+							exit(0);
+						}
+						scopes.top()->insertVariable($1->type, $2->name, offsets.top());
+						offsets.top()++;
+					}
 				|	EnumType ID SC{}
 				|	EnumDecl{}
-				|	Type ID ASSIGN Exp SC {
-						if ($1->type != $4 ->type && ($1->type != "INT" || $4->type != "BOOL" $)) {
+				|	Type ID ASSIGN Exp SC { 
+						if (recursiveSearch(&scopes, $2->name)) {
+							errorDef(yylineno, $2->name);
+							exit(0);
+						}
+						else if ($1->type != $4 ->type && ($1->type != "INT" || $4->type != "BOOL" $)) {
 							errorMismatch(yylineno); //TODO check
 							exit(0);
 						}
-						scopes.top()->insertVariables($1->type, $2->name, offsets.top())
+						scopes.top()->insertVariable($1->type, $2->name, offsets.top());
 						offsets.top()++;
 					}
 				|	EnumType ID ASSIGN Exp SC{}
-				|	ID ASSIGN Exp SC{}
+				|	ID ASSIGN Exp SC {
+						variableEntry* var = getVariable($1->name);
+						if (!var) {
+							errorUndef(yylineno, $1->name);
+							exit(0);
+						}
+						else if (var->type != $3 ->type && (var->type != "INT" || $3->type != "BOOL" $)) {
+							errorMismatch(yylineno); //TODO check
+							exit(0);
+						}
+					}
 				|	Call SC{}
-				|	RETURN SC{
+				|	RETURN SC {
 						if (scopes.top()->currentFunc->returnType != "VOID"){
 							errorMismatch(yylineno);
 							exit(0);
 						}
 					}
-				|	RETURN Exp SC{
+				|	RETURN Exp SC {
 						if (scopes.top()->currentFunc->returnType == "VOID"){
 							errorMismatch(yylineno);
 							exit(0);
@@ -146,22 +167,27 @@ Exp 			:	LPAREN Exp RPAREN {$$= $2;}
 				|	Exp SUB Exp {$$ = dealWithBinop($1, $2);}
 				|	ID { 
 						//todo - get table top, find variable
-						$$ = new TableEntry("", //todo);
+						$$ = new entry("", //todo);
 					}
 				|	Call { 
 
 					}
-				|	NUM {$$ = new TableEntry("", "INT");}
-				|	NUM B {$$ = new TableEntry("", "BYTE");}
-				|	STRING {$$ = new TableEntry("", "STRING");}
-				|	TRUE {$$ = new TableEntry("", "BOOL");}
-				|	FALSE {$$ = new TableEntry("", "BOOL");}
+				|	NUM {$$ = new entry("", "INT");}
+				|	NUM B {$$ = new entry("", "BYTE");}
+				|	STRING {$$ = new entry("", "STRING");}
+				|	TRUE {$$ = new entry("", "BOOL");}
+				|	FALSE {$$ = new entry("", "BOOL");}
 				|	NOT Exp {$$ = dealWithBoolOutput($2, "BOOL");}
 				|	Exp AND Exp {$$ = dealwithBoolOutput($1, $3, "BOOL");}
 				|	Exp OR Exp {$$ = dealwithBoolOutput($1, $3, "BOOL");}
 				|	Exp EQUALITY Exp {$$ = dealwithBoolOutput($1, $3, "INT");}
 				|	Exp RELATION Exp {$$ = dealwithBoolOutput($1, $3, "INT");}
-				|	LPAREN Type RPAREN Exp{}; //todo HAMARA
+				|	LPAREN Type RPAREN Exp { 
+						if ($2->type != "INT" || $4->type != "ENUM") {
+							//todo what error for bad casing?
+						}
+						//todo do the numbering thing mentioned in the rule
+					}; 
 %%
 
 main(){
@@ -191,6 +217,21 @@ int yyerror(const char * message)
 	errorSyn(yylineno);
 	exit(0);
 }
+
+bool variableSearch(stack<scope*> *scopes, string name) {
+	if (scopes->empty()) {
+		return false;
+	}
+	else if (scopes.top()->getVariable(name)) {
+		return true;
+	}
+
+	scope.pop();
+	bool res = variableSearch(scopes);
+	scope.push(s);
+	return res;
+}
+
 
 YYSTYPE dealwithBoolOutput(YYSTYPE left,  YYSTYPE right, string check_for) {
 	if (right && right->type != check_for) {
