@@ -48,19 +48,19 @@
 	Doneth list - 1, 2, 3, 4, 11, 12, 13
 */ 
 
-
+//TODO - offsets!
 %% /*Rules*/
-Program			:	Enums Funcs{};
+Program			:	Enums Funcs;
 
-Funcs			:	/*epsilon*/{}
-				|	FuncDecl Funcs{};	
+Funcs			:	/*epsilon*/
+				|	FuncDecl Funcs;	
 			
 FuncDecl		:	RetType ID LPAREN Formals RPAREN LBRACE Statements RBRACE{};
 
 Enums			:	/*epsilon*/{};
 				|	EnumDecl Enums {$$ = new enumEntry();};
 
-EnumDecl		:	ENUM ID LBRACE EnumeratorList RBRACE SC{};
+EnumDecl		:	ENUM ID LBRACE EnumeratorList RBRACE SC{}; //todo test for repeating ids
 	
 RetType			:	Type {$$ = $1}
 				|	VOID {$$ = new variableEntry("", "VOID");};
@@ -74,8 +74,17 @@ FormalsList		:	FormalDecl{}
 FormalDecl 		:	Type ID{}
 				|	EnumType ID{};
 	
-EnumeratorList	:	Enumerator {$$->type.maxValue++;}
-				|	EnumeratorList COMMA Enumerator {$$->type.maxValue++;};
+EnumeratorList	:	Enumerator {$$ = new enumEntry("", vector<string>(1, $1->name));}
+				|	EnumeratorList COMMA Enumerator { 
+						vector<string>& enumValues = $$->type.values;
+						if (std::find(enumValues.begin(), enumValues.end(), $2->name) != enumValues.end()) {
+							errorDef(yylineno, $3->name);
+							exit(0);
+						}
+						
+						$$ = $1;
+						$$->type.values.push_back($3->name);
+					};
 	
 Enumerator		:	ID;
 	
@@ -153,7 +162,7 @@ Statement		:	LBRACE Statements RBRACE{}
 						}
 					}
 				|	IF LPAREN Exp RPAREN {addScope()} Statement {removeScope()} ELSE {addScope()} Statement {}
-				|	IF LPAREN Exp RPAREN {addScope()} Statement {removeScope()} {}
+				|	IF LPAREN Exp RPAREN {addScope()} Statement {removeScope()}
 				|	WHILE LPAREN Exp RPAREN Statement{}
 				|	BREAK SC{
 						if(scopes.top()->insideLoop == false){
@@ -226,20 +235,6 @@ main(){
     stack<int> offsets= stack<int>();
     offsets.push(0);
 	
-	// Add print and printi library functions
-	
-	//print
-	functionType printType = functionType("VOID", std::vector<string>());
-	printType.addParam("STRING");
-	functionEntry  printEntry = functionEntry("print", printType);
-	tables.top()->insertFunction(printEntry);
-
-	//printi
-	functionType printiType = functionType("VOID", std::vector<string>());
-	printiType.addParam("INT");
-	functionEntry  printiEntry = functionEntry("printi", printiType);
-	tables.top()->insertFunction(printiEntry);
-	
 	yyparse();
 	functionEntry* checkMain = tables.top()->getFunction("main");
 
@@ -247,11 +242,6 @@ main(){
 		errorMainMissing();
 		return 0;
 	}
-	endScope();
-	tables.top()->printFunctions();
-	tables.pop(); 
-	offsets.pop();
-	return 0;
 }
 
 int yyerror(const char * message)
