@@ -58,7 +58,7 @@ Funcs			:	/*epsilon*/{}
 FuncDecl		:	RetType ID LPAREN Formals RPAREN LBRACE Statements RBRACE{};
 
 Enums			:	/*epsilon*/{};
-				|	EnumDecl Enums {$$ = new enumEntry("");};
+				|	EnumDecl Enums {$$ = new enumEntry();};
 
 EnumDecl		:	ENUM ID LBRACE EnumeratorList RBRACE SC{};
 	
@@ -275,17 +275,17 @@ bool variableSearch(stack<scope*> *scopes, string name) {
 	return res;
 }
 
-bool enumSearch(stack<scope*> *scopes, string name) {
+bool enumSearch(stack<Scope*> *scopes, string name) {
 	if (scopes->empty()) {
 		return false;
 	}
-	else if (scopes.top()->getEnum(name)) {
+	else if (scopes->top()->getEnum(name)) {
 		return true;
 	}
 
-	scope.pop();
+	Scope s = scopes->pop();
 	bool res = enumSearch(scopes, name);
-	scope.push(s);
+	scopes->push(s);
 	return res;
 }
 
@@ -299,7 +299,7 @@ YYSTYPE dealwithBoolOutput(YYSTYPE left,  YYSTYPE right, string check_for) {
 		errorMismatch(yylineno);
 		exit(0);
 	}
-	return new variableEntry("", "BOOL")
+	return new variableEntry("", "BOOL");
 }
 
 YYSTYPE dealWithBinop(YYSTYPE left, YYSTYPE right) {

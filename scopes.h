@@ -15,7 +15,7 @@ using namespace output;
 #define INT_SIZE 1
 #define BOOL_SIZE 1
 #define startParamOffset =1;
-#define YYSTYPE entry*
+#define YYSTYPE variableEntry*
 
 namespace scopeTables{
 
@@ -25,7 +25,7 @@ namespace scopeTables{
             const string &name;
             t type;
             int offset;
-            entry(string name, t type, int offset=0):name(name), type(type), offset(offset){};
+            entry(string name="", t type="", int offset=0):name(name), type(type), offset(offset){};
         };
 
         class functionType {
@@ -45,7 +45,7 @@ namespace scopeTables{
         public:
             vector<string> values;
 
-            enumType(vector<string> values ) : values(values){};
+            enumType(vector<string> values = vector<string>()) : values(values){};
         };
 
 
@@ -131,7 +131,7 @@ namespace scopeTables{
             }
             void printEnums(){
                 for(enumEntry e : enums)
-                    printEnumType(e.type.name, e.type.values);
+                    printEnumType(e.name, e.type.values);
             }
 
 
