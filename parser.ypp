@@ -46,7 +46,6 @@
 
 /*
 	Doneth list - 1, 2, 3, 4, 11, 12, 13
-
 */ 
 
 
@@ -87,7 +86,14 @@ Statement		:	LBRACE Statements RBRACE{}
 				|	Type ID SC{}
 				|	EnumType ID SC{}
 				|	EnumDecl{}
-				|	Type ID ASSIGN Exp SC{}
+				|	Type ID ASSIGN Exp SC {
+						if ($1->type != $4 ->type && ($1->type != "INT" || $4->type != "BOOL" $)) {
+							errorMismatch(yylineno); //TODO check
+							exit(0);
+						}
+						scopes.top()->insertVariables($1->type, $2->name, offsets.top())
+						offsets.top()++;
+					}
 				|	EnumType ID ASSIGN Exp SC{}
 				|	ID ASSIGN Exp SC{}
 				|	Call SC{}
