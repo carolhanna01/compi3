@@ -65,7 +65,12 @@ Program			:	Enums Funcs;
 Funcs			:	/*epsilon*/
 				|	FuncDecl Funcs;	
 			
-FuncDecl		:	RetType ID LPAREN Formals RPAREN LBRACE Statements RBRACE{};
+FuncDecl		:	RetType ID {
+						if (scopes.top()->getVariable($2->name)) {
+							errorDef(yylineno, $2->name);
+							exit(0);
+						}
+					} LPAREN Formals RPAREN {addScope();} LBRACE Statements RBRACE {removeScope();};
 
 Enums			:	/*epsilon*/{};
 				|	EnumDecl Enums {};
@@ -82,18 +87,18 @@ EnumDecl		:	ENUM ID {
 RetType			:	Type {$$ = $1;}
 				|	VOID {$$ = new variableEntry("", "VOID");};
 	
-Formals			:	/*epsilon*/{}
-				|	FormalsList{};
+Formals			:	/*epsilon*/
+				|	FormalsList;
 			
 FormalsList		:	FormalDecl{}
 				|	FormalDecl COMMA FormalsList{};
 	
 FormalDecl 		:	Type ID {
-						
+						//TODO can var bs func name?							
 					}
 				|	EnumType ID {
 					
-				};
+					};
 	
 EnumeratorList	:	Enumerator {$$ = new enumEntry("", vector<string>(1, $1->name));}
 				|	EnumeratorList COMMA Enumerator { 
