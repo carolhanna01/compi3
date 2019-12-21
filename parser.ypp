@@ -204,6 +204,20 @@ main(){
     stack<int> offsets= stack<int>();
     offsets.push(0);
 	
+	// Add print and printi library functions
+	
+	//print
+	functionType printType = functionType("VOID", std::vector<string>());
+	printType.addParam("STRING");
+	functionEntry  printEntry = functionEntry("print", printType);
+	tables.top()->insertFunction(printEntry);
+
+	//printi
+	functionType printiType = functionType("VOID", std::vector<string>());
+	printiType.addParam("INT");
+	functionEntry  printiEntry = functionEntry("printi", printiType);
+	tables.top()->insertFunction(printiEntry);
+	
 	yyparse();
 	functionEntry* checkMain = tables.top()->getFunction("main");
 
@@ -211,6 +225,11 @@ main(){
 		errorMainMissing();
 		return 0;
 	}
+	endScope();
+	tables.top()->printFunctions();
+	tables.pop(); 
+	offsets.pop();
+	return 0;
 }
 
 int yyerror(const char * message)
