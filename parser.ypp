@@ -1,7 +1,7 @@
 %{
 
 	/* Declarations section */
-	#include "hw3_output.hpp"
+	#include "output.hpp"
 	#include "scopes.h"
 
 	#include <iostream>
@@ -58,9 +58,16 @@ Funcs			:	/*epsilon*/
 FuncDecl		:	RetType ID LPAREN Formals RPAREN LBRACE Statements RBRACE{};
 
 Enums			:	/*epsilon*/{};
-				|	EnumDecl Enums {$$ = new enumEntry();};
+				|	EnumDecl Enums {};
 
-EnumDecl		:	ENUM ID LBRACE EnumeratorList RBRACE SC{}; //todo test for repeating ids
+EnumDecl		:	ENUM ID {
+						if (enumSearch(scopes, $2->name)) {
+							errorDef(yylineno, $2->name);
+							error(0);
+						}	
+					} LBRACE EnumeratorList RBRACE SC {
+						scopes.insertEnum($4);
+					};
 	
 RetType			:	Type {$$ = $1}
 				|	VOID {$$ = new variableEntry("", "VOID");};
@@ -71,8 +78,12 @@ Formals			:	/*epsilon*/{}
 FormalsList		:	FormalDecl{}
 				|	FormalDecl COMMA FormalsList{};
 	
-FormalDecl 		:	Type ID{}
-				|	EnumType ID{};
+FormalDecl 		:	Type ID {
+						
+					}
+				|	EnumType ID {
+					
+				};
 	
 EnumeratorList	:	Enumerator {$$ = new enumEntry("", vector<string>(1, $1->name));}
 				|	EnumeratorList COMMA Enumerator { 
@@ -81,7 +92,6 @@ EnumeratorList	:	Enumerator {$$ = new enumEntry("", vector<string>(1, $1->name))
 							errorDef(yylineno, $3->name);
 							exit(0);
 						}
-						
 						$$ = $1;
 						$$->type.values.push_back($3->name);
 					};
@@ -187,7 +197,7 @@ ExpList 		:	Exp{}
 				|	Exp COMMA ExpList{};
 	
 Type 			:	INT{$$ = new variableEntry("", "INT")}
-				|	BYTE{$$ = new variableEntry("", "BYTE")}
+				|	BYTE{$$ = new variableEntry("", "BYTE")
 							//todo: add errorCheck for byte value (need to add field to entry?)}
 				|	BOOL{$$ = new variableEntry("", "BOOL")};
 	
@@ -265,17 +275,17 @@ bool variableSearch(stack<scope*> *scopes, string name) {
 	return res;
 }
 
-bool enumSearch(stack<Scope*> *scopes, string name) {
+bool enumSearch(stack<scope*> *scopes, string name) {
 	if (scopes->empty()) {
 		return false;
 	}
-	else if (scopes->top()->getEnum(name)) {
+	else if (scopes.top()->getEnum(name)) {
 		return true;
 	}
 
-	Scope s = scopes->pop();
+	scope.pop();
 	bool res = enumSearch(scopes, name);
-	scopes->push(s);
+	scope.push(s);
 	return res;
 }
 
@@ -289,7 +299,7 @@ YYSTYPE dealwithBoolOutput(YYSTYPE left,  YYSTYPE right, string check_for) {
 		errorMismatch(yylineno);
 		exit(0);
 	}
-	return new variableEntry("", "BOOL");
+	return new entry("", "BOOL")
 }
 
 YYSTYPE dealWithBinop(YYSTYPE left, YYSTYPE right) {
@@ -297,8 +307,8 @@ YYSTYPE dealWithBinop(YYSTYPE left, YYSTYPE right) {
 		errorMismatch(yylineno); //TODO check
 		exit(0);
 	}
-	string type = (left->type == "BYTE" && right->type == "BYTE") ? "BYTE" : "INT";
-	return new variableEntry("", type);
+	string type = left->type == "BYTE" && right->type == "BYTE" ? "BYTE" : "INT";
+	return new entry("", type);
 }
 
 
