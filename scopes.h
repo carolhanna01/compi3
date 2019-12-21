@@ -17,48 +17,35 @@ using namespace output;
 #define startParamOffset =1;
 
 namespace scopeTables{
-        template <typename t>
+
+    template <typename t>
         class entry{
             public:
             const string &name;
             t type;
-            entry(string name, t type):name(name), type(type){};
+            int offset;
+            entry(string name, t type, int offset=0):name(name), type(type), offset(offset){};
         };
 
         class functionType{
-            public:
+        public:
             string returnType;
             vector<string> paramTypes;
+
+            functionType(string returnType, vector<string> paramTypes):
+            returnType(returnType), paramTypes(paramTypes){};
 
             void addParam(string paramType) {
                 paramTypes.push_back(paramType);
             }
         };
 
-        class variableEntry :
-        public entry<string>{
-            public:
-            int offset;
-            variableEntry(string
-            type = "", string
-            name = "", int
-            offset = 0):entry(name, type), offset(offset)
-            {}
 
-        };
-        class functionEntry :
-        public entry<functionType>{
-            public:
-            int offset;
-            functionEntry(functionType
-            type, string
-            name = "", int
-            offset = 0):entry(name, type), offset(offset){};
-        };
+    typedef  entry<string> variableEntry;
+    typedef  entry<functionType> functionEntry;
 
 
-
-    class scope{
+    class Scope{
             public:
 
             vector<variableEntry> variables;
@@ -68,7 +55,7 @@ namespace scopeTables{
 
 
             // Constructor
-            scope(bool inLoop){
+            Scope(bool inLoop){
             variables = vector<variableEntry>();
             functions = vector<functionEntry>();
             insideLoop =inLoop;
@@ -81,13 +68,16 @@ namespace scopeTables{
                         return &v;
                     }
                 }
+                return nullptr;
             }
+
             functionEntry* getFunction(const string &name) {
                 for (functionEntry& f : functions) {
                     if (name == f.name) {
                         return &f;
                     }
                 }
+                return nullptr;
             }
 
             void insertVariable(variableEntry v) {
@@ -105,14 +95,14 @@ namespace scopeTables{
                 functions.push_back(f);
             }
 
-            void addScope (stack<scope*> scopes, stack<int> offsets){
-                scopes.push(new scope(scopes.top()));
+            void addScope (stack<Scope*> scopes, stack<int> offsets){
+                scopes.push(new Scope(scopes.top()));
                 offsets.push(offsets.top());
              }
 
-            void removeScope (stack<scope*> scopes, stack<int> offsets){
+            void removeScope (stack<Scope*> scopes, stack<int> offsets){
                 endScope();
-                //add impl depending on what you need
+
             }
 
         };

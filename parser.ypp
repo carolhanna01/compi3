@@ -162,8 +162,8 @@ main(){
     //~~~~~~~~~~~~ instancing Tables for handling scopes ~~~~~~~~~~~~//
 
     //instance & initialize scope stack
-    scope* s = new scope();
-    stack<scope*> scopes = stack<scope*>();
+    Scope* s = new Scope();
+    stack<Scope*> scopes = stack<Scope*>();
     scopes.push(s);
 
     //instance & initialize scope stack
