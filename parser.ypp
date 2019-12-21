@@ -1,7 +1,7 @@
 %{
 
 	/* Declarations section */
-	#include "output.hpp"
+	#include "hw3_output.hpp"
 	#include "scopes.h"
 
 	#include <iostream>
@@ -15,7 +15,7 @@
 
 	stack<Scope*> scopes;
 	stack<int> offsets;
-	stack<vector<string> funcParameterStack;
+	stack<vector<string>> funcParameterStack;
 	functionEntry newFunction = functionEntry();
 
 	YYSTYPE dealWithBinop(YYSTYPE left, YYSTYPE right);
@@ -76,10 +76,10 @@ FuncDecl		:	RetType ID {
 						newFunction.name = $2->name;
 						newFunction.type.returnType = $1->type;
 						newFunction.type.paramTypes = vector<string>();
-						addScope();
+						addScope(scopes, offsets);
 					} LPAREN Formals RPAREN LBRACE Statements RBRACE {
-						removeScope();
-						scopes.insertFunction(newFunction);
+						removeScope(scopes, offsets);
+						scopes.top()->insertFunction(newFunction);
 					};
 
 Enums			:	/*epsilon*/{};
@@ -199,8 +199,8 @@ Statement		:	LBRACE Statements RBRACE{}
 							exit(0);
 						}
 					}
-				|	IF LPAREN Exp RPAREN {addScope()} Statement {removeScope()} ELSE {addScope()} Statement {}
-				|	IF LPAREN Exp RPAREN {addScope()} Statement {removeScope()}
+				|	IF LPAREN Exp RPAREN {addScope(scopes, offsets);} Statement {removeScope(scopes, offsets);} ELSE {addScope(scopes, offsets)} Statement {}
+				|	IF LPAREN Exp RPAREN {addScope(scopes, offsets);} Statement {removeScope(scopes, offsets);}
 				|	WHILE LPAREN Exp RPAREN Statement{}
 				|	BREAK SC{
 						if(scopes.top()->insideLoop == false){
@@ -261,7 +261,7 @@ Exp 			:	LPAREN Exp RPAREN {$$= $2;}
 				|	Exp SUB Exp {$$ = dealWithBinop($1, $2);}
 				|	ID { 
 						//todo - get table top, find variable
-						$$ = new variableEntry("", //todo);
+						//todo: $$ = new variableEntry("", /*todo*/);
 					}
 				|	Call { 
 						$$ = $1; 
@@ -312,7 +312,7 @@ main(){
 	yyparse();
 	functionEntry* checkMain = tables.top()->getFunction("main");
 
-	if (checkMain == NULL || checkMain->paramTypes.size()!=0 || checkMain->returnType != "VOID"){
+	if (checkMain == NULL || checkMain->type.paramTypes.size()!=0 || checkMain->type.returnType != "VOID"){
 		errorMainMissing();
 		return 0;
 	}
@@ -329,18 +329,18 @@ bool variableSearch(stack<Scope*> *scopes, string name) {
 	if (scopes->empty()) {
 		return false;
 	}
-	else if (scopes.top()->getVariable(name)) {
+	else if (scopes->top()->getVariable(name)) {
 		return true;
 	}
 
 	Scope s = scopes->top();
 	scopes->pop();
 	bool res = variableSearch(scopes, name);
-	scope.push(s);
+	scopes.push(s);
 	return res;
 }
 
-bool enumSearch(stack<scope*> *scopes, string name) {
+bool enumSearch(stack<Scope*> *scopes, string name) {
 	if (scopes->empty()) {
 		return false;
 	}
@@ -351,7 +351,7 @@ bool enumSearch(stack<scope*> *scopes, string name) {
 	Scope s = scopes->top();
 	scopes->pop();
 	bool res = enumSearch(scopes, name);
-	scope.push(s);
+	scopes->push(s);
 	return res;
 }
 
@@ -365,7 +365,7 @@ YYSTYPE dealwithBoolOutput(YYSTYPE left,  YYSTYPE right, string check_for) {
 		errorMismatch(yylineno);
 		exit(0);
 	}
-	return new entry("", "BOOL")
+	return new variableEntry("", "BOOL");
 }
 
 YYSTYPE dealWithBinop(YYSTYPE left, YYSTYPE right) {
@@ -374,7 +374,7 @@ YYSTYPE dealWithBinop(YYSTYPE left, YYSTYPE right) {
 		exit(0);
 	}
 	string type = left->type == "BYTE" && right->type == "BYTE" ? "BYTE" : "INT";
-	return new entry("", type);
+	return new variableEntry("", type);
 }
 
 
