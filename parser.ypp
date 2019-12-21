@@ -58,12 +58,14 @@ Funcs			:	/*epsilon*/{}
 FuncDecl		:	RetType ID LPAREN Formals RPAREN LBRACE Statements RBRACE{};
 
 Enums			:	/*epsilon*/{};
-				|	EnumDecl Enums{};
+				|	EnumDecl Enums {
+						$$ = new entry("", "ENUM");
+					};
 
 EnumDecl		:	ENUM ID LBRACE EnumeratorList RBRACE SC{};
 	
-RetType			:	Type{}
-				|	VOID{};
+RetType			:	Type {$$ = $1}
+				|	VOID {$$ = new entry("", "VOID")};
 	
 Formals			:	/*epsilon*/{}
 				|	FormalsList{};
@@ -194,8 +196,8 @@ main(){
     //~~~~~~~~~~~~ instancing Tables for handling scopes ~~~~~~~~~~~~//
 
     //instance & initialize scope stack
-    Scope* s = new Scope();
-    stack<Scope*> scopes = stack<Scope*>();
+    scope* s = new scope();
+    stack<scope*> scopes = stack<scope*>();
     scopes.push(s);
 
     //instance & initialize scope stack

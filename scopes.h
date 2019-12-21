@@ -19,7 +19,7 @@ using namespace output;
 namespace scopeTables{
 
     template <typename t>
-        class entry{
+        class entry {
             public:
             const string &name;
             t type;
@@ -27,7 +27,7 @@ namespace scopeTables{
             entry(string name, t type, int offset=0):name(name), type(type), offset(offset){};
         };
 
-        class functionType{
+        class functionType {
         public:
             string returnType;
             vector<string> paramTypes;
@@ -40,10 +40,17 @@ namespace scopeTables{
             }
         };
 
+        class enumEntry {
+        public:
+            int maxValue;
 
-    typedef  entry<string> variableEntry;
-    typedef  entry<functionType> functionEntry;
+            enumEntry(int maxValue) : maxValue(maxValue);
+        };
 
+
+    typedef entry<string> variableEntry;
+    typedef entry<functionType> functionEntry;
+    typedef entry<enumType> enumEntry; 
 
     class Scope{
             public:
