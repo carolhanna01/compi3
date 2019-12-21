@@ -187,10 +187,10 @@ Call 			:	ID LPAREN ExpList RPAREN { }
 ExpList 		:	Exp{}
 				|	Exp COMMA ExpList{};
 	
-Type 			:	INT{$$ = new variableEntry("", "INT")}
-				|	BYTE{$$ = new variableEntry("", "BYTE")}
+Type 			:	INT{$$ = new variableEntry("", "INT");}
+				|	BYTE{$$ = new variableEntry("", "BYTE");}
 							//todo: add errorCheck for byte value (need to add field to entry?)}
-				|	BOOL{$$ = new variableEntry("", "BOOL")};
+				|	BOOL{$$ = new variableEntry("", "BOOL");};
 	
 EnumType 		:	ENUM ID {$$ = new variableEntry("", "ENUM");};
 	
@@ -242,13 +242,13 @@ main(){
 	functionType printType = functionType("VOID", std::vector<string>());
 	printType.addParam("STRING");
 	functionEntry  printEntry = functionEntry("print", printType);
-	tables.top()->insertFunction(printEntry);
+	scopes.top()->insertFunction(printEntry);
 
 	//printi
 	functionType printiType = functionType("VOID", std::vector<string>());
 	printiType.addParam("INT");
 	functionEntry  printiEntry = functionEntry("printi", printiType);
-	tables.top()->insertFunction(printiEntry);
+	scopes.top()->insertFunction(printiEntry);
 	
 	yyparse();
 	functionEntry* checkMain = tables.top()->getFunction("main");
