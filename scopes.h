@@ -6,7 +6,7 @@
 #include <iostream>
 #include <stack>
 #include <vector>
-#include "../../Desktop/compi3/hw3_output.hpp"
+#include "hw3_output.hpp"
 extern int yylineno;
 
 using namespace std;
@@ -15,6 +15,7 @@ using namespace output;
 #define INT_SIZE 1
 #define BOOL_SIZE 1
 #define startParamOffset =1;
+#define YYSTYPE entry*
 
 namespace scopeTables{
 
@@ -42,10 +43,9 @@ namespace scopeTables{
 
         class enumType {
         public:
-            string name;
             vector<string> values;
 
-            enumType(string name, vector<string> values ) : name(name), values(values){};
+            enumType(vector<string> values ) : values(values){};
         };
 
 
@@ -88,7 +88,7 @@ namespace scopeTables{
                 }
                 return nullptr;
             }
-            functionEntry* getEnum(const string &name) {
+            enumEntry* getEnum(const string &name) {
                 for (enumEntry& e : enums) {
                     if (name == e.name) {
                         return &e;

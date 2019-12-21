@@ -3,7 +3,7 @@
 /* Declarations section */
 #include <stdio.h>
 #include "parser.tab.hpp"
-#include "output.hpp"
+#include "hw3_output.hpp"
 
 using namespace output;
 

@@ -1,7 +1,7 @@
 %{
 
 	/* Declarations section */
-	#include "output.hpp"
+	#include "hw3_output.hpp"
 	#include "scopes.h"
 
 	#include <iostream>
@@ -178,7 +178,7 @@ ExpList 		:	Exp{}
 				|	Exp COMMA ExpList{};
 	
 Type 			:	INT{$$ = new variableEntry("", "INT")}
-				|	BYTE{$$ = new variableEntry("", "BYTE")
+				|	BYTE{$$ = new variableEntry("", "BYTE")}
 							//todo: add errorCheck for byte value (need to add field to entry?)}
 				|	BOOL{$$ = new variableEntry("", "BOOL")};
 	
@@ -299,7 +299,7 @@ YYSTYPE dealwithBoolOutput(YYSTYPE left,  YYSTYPE right, string check_for) {
 		errorMismatch(yylineno);
 		exit(0);
 	}
-	return new entry("", "BOOL")
+	return new variableEntry("", "BOOL")
 }
 
 YYSTYPE dealWithBinop(YYSTYPE left, YYSTYPE right) {
@@ -307,8 +307,8 @@ YYSTYPE dealWithBinop(YYSTYPE left, YYSTYPE right) {
 		errorMismatch(yylineno); //TODO check
 		exit(0);
 	}
-	string type = left->type == "BYTE" && right->type == "BYTE" ? "BYTE" : "INT";
-	return new entry("", type);
+	string type = (left->type == "BYTE" && right->type == "BYTE") ? "BYTE" : "INT";
+	return new variableEntry("", type);
 }
 
 
