@@ -12,6 +12,16 @@
 	
 	extern int yylex();
 	int yyerror(const char * message);
+
+	stack<Scope*> scopes;
+	stack<int> offsets;
+	YYSTYPE dealWithBinop(YYSTYPE left, YYSTYPE right);
+	YYSTYPE dealwithBoolOutput(YYSTYPE left,  YYSTYPE right, string check_for);
+	bool enumSearch(stack<Scope*> *scopes, string name);
+	bool variableSearch(stack<Scope*> *scopes, string name);
+	int yyerror(const char * message);
+
+
 %}
 
 %token	  VOID
@@ -62,7 +72,7 @@ Enums			:	/*epsilon*/{};
 
 EnumDecl		:	ENUM ID LBRACE EnumeratorList RBRACE SC{};
 	
-RetType			:	Type {$$ = $1}
+RetType			:	Type {$$ = $1;}
 				|	VOID {$$ = new variableEntry("", "VOID");};
 	
 Formals			:	/*epsilon*/{}
@@ -218,12 +228,12 @@ main(){
     //~~~~~~~~~~~~ instancing Tables for handling scopes ~~~~~~~~~~~~//
 
     //instance & initialize scope stack
-    scope* s = new scope();
-    stack<scope*> scopes = stack<scope*>();
+    Scope* s = new Scope();
+    scopes = stack<Scope*>();
     scopes.push(s);
 
     //instance & initialize scope stack
-    stack<int> offsets= stack<int>();
+    offsets= stack<int>();
     offsets.push(0);
 	
 	// Add print and printi library functions
@@ -261,7 +271,7 @@ int yyerror(const char * message)
 	exit(0);
 }
 
-bool variableSearch(stack<scope*> *scopes, string name) {
+bool variableSearch(stack<Scope*> *scopes, string name) {
 	if (scopes->empty()) {
 		return false;
 	}
@@ -269,7 +279,8 @@ bool variableSearch(stack<scope*> *scopes, string name) {
 		return true;
 	}
 
-	scope.pop();
+	Scope s = scopes->top();
+	scopes->pop();
 	bool res = variableSearch(scopes, name);
 	scope.push(s);
 	return res;
@@ -283,7 +294,8 @@ bool enumSearch(stack<Scope*> *scopes, string name) {
 		return true;
 	}
 
-	Scope s = scopes->pop();
+	Scope s = scopes->top();
+	scopes->pop();
 	bool res = enumSearch(scopes, name);
 	scopes->push(s);
 	return res;
