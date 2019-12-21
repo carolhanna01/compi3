@@ -88,6 +88,14 @@ namespace scopeTables{
                 }
                 return nullptr;
             }
+            functionEntry* getEnum(const string &name) {
+                for (enumEntry& e : enums) {
+                    if (name == e.name) {
+                        return &e;
+                    }
+                }
+                return nullptr;
+            }
 
             void insertVariable(variableEntry v) {
                 if (getVariable(v.name) != nullptr) {
@@ -103,16 +111,16 @@ namespace scopeTables{
                 }
                 functions.push_back(f);
             }
-
-            void addScope (stack<Scope*> scopes, stack<int> offsets){
-                scopes.push(new Scope(scopes.top()));
-                offsets.push(offsets.top());
-             }
-
-            void removeScope (stack<Scope*> scopes, stack<int> offsets){
-                endScope();
-
+            void insertEnum(enumEntry e) {
+                if (getEnum(e.name) != nullptr) {
+                    errorDef(yylineno, e.name);
+                    exit(0);
+                }
+                functions.push_back(e);
             }
+
+
+
             void printVariables(){
                 for(variableEntry v: variables)
                     printID(v.name, v.offset, v.type);
@@ -129,7 +137,17 @@ namespace scopeTables{
 
         };
 
+    void addScope (stack<Scope*> scopes, stack<int> offsets){
+        scopes.push(new Scope(scopes.top()));
+        offsets.push(offsets.top());
+    }
 
-
+    void removeScope (stack<Scope*> scopes, stack<int> offsets){
+        endScope();
+        scopes.top()->printVariables();
+        scopes.top()->printEnums();
+        scopes.pop();
+        offsets.pop();
+    }
 
 }
