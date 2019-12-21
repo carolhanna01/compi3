@@ -58,14 +58,12 @@ Funcs			:	/*epsilon*/{}
 FuncDecl		:	RetType ID LPAREN Formals RPAREN LBRACE Statements RBRACE{};
 
 Enums			:	/*epsilon*/{};
-				|	EnumDecl Enums {
-						$$ = new entry("", "ENUM");
-					};
+				|	EnumDecl Enums {$$ = new enumEntry("");};
 
 EnumDecl		:	ENUM ID LBRACE EnumeratorList RBRACE SC{};
 	
 RetType			:	Type {$$ = $1}
-				|	VOID {$$ = new entry("", "VOID")};
+				|	VOID {$$ = new variableEntry("", "VOID");};
 	
 Formals			:	/*epsilon*/{}
 				|	FormalsList{};
@@ -76,10 +74,10 @@ FormalsList		:	FormalDecl{}
 FormalDecl 		:	Type ID{}
 				|	EnumType ID{};
 	
-EnumeratorList	:	Enumerator{}
-				|	EnumeratorList COMMA Enumerator{};
+EnumeratorList	:	Enumerator {$$->type.maxValue++;}
+				|	EnumeratorList COMMA Enumerator {$$->type.maxValue++;};
 	
-Enumerator		:	ID{};
+Enumerator		:	ID;
 	
 Statements		:	Statement{}
 				|	Statements Statement{}
@@ -93,7 +91,18 @@ Statement		:	LBRACE Statements RBRACE{}
 						scopes.top()->insertVariable($1->type, $2->name, offsets.top());
 						offsets.top()++;
 					}
-				|	EnumType ID SC{}
+				|	EnumType ID SC {
+						if (!enumSearch(scopes, $1->name)) {
+							errorUndefEnum(yylineno, $2->name);
+							exit(0);
+						}
+						else if (recursiveSearch(&scopes, $2->name)) {
+							errorDef(yylineno, $2->name);
+							exit(0);
+						}
+						scopes.top()->insertVariable($1->type, $2->name, offsets.top());
+						offsets.top()++;
+					}
 				|	EnumDecl{}
 				|	Type ID ASSIGN Exp SC { 
 						if (recursiveSearch(&scopes, $2->name)) {
@@ -107,7 +116,18 @@ Statement		:	LBRACE Statements RBRACE{}
 						scopes.top()->insertVariable($1->type, $2->name, offsets.top());
 						offsets.top()++;
 					}
-				|	EnumType ID ASSIGN Exp SC{}
+				|	EnumType ID ASSIGN Exp SC {
+						if (!enumSearch(scopes, $1->name)) {
+							errorUndefEnum(yylineno, $2->name);
+							exit(0);
+						}
+						else if (recursiveSearch(&scopes, $2->name)) {
+							errorDef(yylineno, $2->name);
+							exit(0);
+						}
+						scopes.top()->insertVariable($1->type, $2->name, offsets.top());
+						offsets.top()++;
+					}
 				|	ID ASSIGN Exp SC {
 						variableEntry* var = getVariable($1->name);
 						if (!var) {
@@ -132,8 +152,8 @@ Statement		:	LBRACE Statements RBRACE{}
 							exit(0);
 						}
 					}
-				|	IF LPAREN Exp RPAREN Statement ELSE Statement{}
-				|	IF LPAREN Exp RPAREN Statement{}
+				|	IF LPAREN Exp RPAREN {addScope()} Statement {removeScope()} ELSE {addScope()} Statement {}
+				|	IF LPAREN Exp RPAREN {addScope()} Statement {removeScope()} {}
 				|	WHILE LPAREN Exp RPAREN Statement{}
 				|	BREAK SC{
 						if(scopes.top()->insideLoop == false){
@@ -149,18 +169,20 @@ Statement		:	LBRACE Statements RBRACE{}
 						}
 				};
 	
-Call 			:	ID LPAREN ExpList RPAREN{}
-				|	ID LPAREN RPAREN{};
+Call 			:	ID LPAREN ExpList RPAREN { }
+				|	ID LPAREN RPAREN {
+
+					};
 	
 ExpList 		:	Exp{}
 				|	Exp COMMA ExpList{};
 	
-Type 			:	INT{ $$ = new entry("", "INT") }
-				|	BYTE{ $$ = new entry("", "BYTE")
+Type 			:	INT{$$ = new variableEntry("", "INT")}
+				|	BYTE{$$ = new variableEntry("", "BYTE")
 							//todo: add errorCheck for byte value (need to add field to entry?)}
-				|	BOOL{ $$ = new entry("", "BOOL") };
+				|	BOOL{$$ = new variableEntry("", "BOOL")};
 	
-EnumType 		:	ENUM ID{};
+EnumType 		:	ENUM ID {$$ = new variableEntry("", "ENUM");};
 	
 Exp 			:	LPAREN Exp RPAREN {$$= $2;}
 				|	Exp MUL Exp {$$ = dealWithBinop($1, $2);}
@@ -169,16 +191,16 @@ Exp 			:	LPAREN Exp RPAREN {$$= $2;}
 				|	Exp SUB Exp {$$ = dealWithBinop($1, $2);}
 				|	ID { 
 						//todo - get table top, find variable
-						$$ = new entry("", //todo);
+						$$ = new variableEntry("", //todo);
 					}
 				|	Call { 
-
+						$$ = $1; 
 					}
-				|	NUM {$$ = new entry("", "INT");}
-				|	NUM B {$$ = new entry("", "BYTE");}
-				|	STRING {$$ = new entry("", "STRING");}
-				|	TRUE {$$ = new entry("", "BOOL");}
-				|	FALSE {$$ = new entry("", "BOOL");}
+				|	NUM {$$ = new variableEntry("", "INT");}
+				|	NUM B {$$ = new variableEntry("", "BYTE");}
+				|	STRING {$$ = new variableEntry("", "STRING");}
+				|	TRUE {$$ = new variableEntry("", "BOOL");}
+				|	FALSE {$$ = new variableEntry("", "BOOL");}
 				|	NOT Exp {$$ = dealWithBoolOutput($2, "BOOL");}
 				|	Exp AND Exp {$$ = dealwithBoolOutput($1, $3, "BOOL");}
 				|	Exp OR Exp {$$ = dealwithBoolOutput($1, $3, "BOOL");}
@@ -248,7 +270,21 @@ bool variableSearch(stack<scope*> *scopes, string name) {
 	}
 
 	scope.pop();
-	bool res = variableSearch(scopes);
+	bool res = variableSearch(scopes, name);
+	scope.push(s);
+	return res;
+}
+
+bool enumSearch(stack<scope*> *scopes, string name) {
+	if (scopes->empty()) {
+		return false;
+	}
+	else if (scopes.top()->getEnum(name)) {
+		return true;
+	}
+
+	scope.pop();
+	bool res = enumSearch(scopes, name);
 	scope.push(s);
 	return res;
 }
