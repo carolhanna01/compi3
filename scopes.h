@@ -116,7 +116,7 @@ namespace scopeTables{
                     errorDef(yylineno, e.name);
                     exit(0);
                 }
-                functions.push_back(e);
+                enums.push_back(e);
             }
 
 
