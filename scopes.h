@@ -40,11 +40,12 @@ namespace scopeTables{
             }
         };
 
-        class enumEntry {
+        class enumType {
         public:
-            int maxValue;
+            string name;
+            vector<string> values;
 
-            enumEntry(int maxValue) : maxValue(maxValue);
+            enumType(string name, vector<string> values ) : name(name), values(values){};
         };
 
 
@@ -57,6 +58,7 @@ namespace scopeTables{
 
             vector<variableEntry> variables;
             vector<functionEntry > functions;
+            vector<enumEntry> enums;
             bool insideLoop;
             functionType* currentFunc;
 
@@ -111,6 +113,19 @@ namespace scopeTables{
                 endScope();
 
             }
+            void printVariables(){
+                for(variableEntry v: variables)
+                    printID(v.name, v.offset, v.type);
+            }
+            void printFunctions(){
+                for(functionEntry f : functions)
+                    printID(f.name, 0, makeFunctionType(f.type.returnType, f.type.paramTypes));
+            }
+            void printEnums(){
+                for(enumEntry e : enums)
+                    printEnumType(e.type.name, e.type.values);
+            }
+
 
         };
 
