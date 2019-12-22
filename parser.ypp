@@ -21,9 +21,11 @@
 	enumEntry newEnum = enumEntry();
 
 	YYSTYPE dealWithBinop(YYSTYPE left, YYSTYPE right);
-	YYSTYPE dealwithBoolOutput(string check_for, YYSTYPE left,  YYSTYPE right);
+
+	YYSTYPE dealwithBoolOutput(string check_for, YYSTYPE left,  YYSTYPE right = NULL);
     enumEntry* enumSearch(stack<Scope*> *scopes, string name);
-	bool variableSearch(stack<Scope*> *scopes, string name);
+	variableEntry* variableSearch(stack<Scope*> *scopes, string name);
+	bool similarParameters(const vector<string>& expected, const vector<string>& actual);
 	int yyerror(const char * message);
 
 
@@ -149,7 +151,7 @@ Statement		:	LBRACE {
 						offsets.top()++;
 					}
 				|	EnumType ID SC {
-						if (!enumSearch(scopes.top(), $1->name)) {
+						if (!enumSearch(&scopes, $1->name)) {
 							errorUndefEnum(yylineno, $2->name);
 							exit(0);
 						}
@@ -177,7 +179,7 @@ Statement		:	LBRACE {
 						offsets.top()++;
 					}
 				|	EnumType ID ASSIGN Exp SC {
-						enumEntry* enum_entry = enumSearch(scopes, $1->name);
+						enumEntry* enum_entry = enumSearch(&scopes, $1->name);
 						if (!enum_entry) {
 							errorUndefEnum(yylineno, $2->name);
 							exit(0);
@@ -191,11 +193,12 @@ Statement		:	LBRACE {
 							exit(0);
 						}
                         newVariable = variableEntry($2->name, $1->type, offsets.top(), $3->value);
+
 						scopes.top()->insertVariable(newVariable);
 						offsets.top()++;
 					}
 				|	ID ASSIGN Exp SC {
-						variableEntry* var = getVariable($1->name);
+						variableEntry* var = variableSearch(scopes, $1->name);
 						if (!var) {
 							errorUndef(yylineno, $1->name);
 							exit(0);
@@ -227,7 +230,7 @@ Statement		:	LBRACE {
 						addScope(scopes, offsets);
 					} Statement {
 						removeScope(scopes, offsets);
-					} ELSE {addScope(scopes, offsets)} Statement {}
+					} ELSE {addScope(scopes, offsets);} Statement {}
 				|	IF LPAREN Exp {
 						if ($3->type != "BOOL") {
 							errorMismatch(yylineno);
@@ -254,7 +257,6 @@ Statement		:	LBRACE {
 							errorUnexpectedBreak(yylineno);
 							exit(0);
 						}
-
 					}
 					
 				|	CONTINUE SC {
@@ -284,15 +286,14 @@ Call 			:	ID {
 							errorUndefFunc(yylineno, $1->name);
 							exit(0);
 						} else if (f->type.paramTypes.size() != 0) {
-							errorPrototypeMismatch(yylineno, id, types);
+							errorPrototypeMismatch(yylineno, $1->name, f->type.paramTypes); //todo: make sure this line is ok
 							exit(0);
 						}
 						$$ = new variableEntry("", f->type.returnType);
 					};
-	
-ExpList 		:	Exp {funcParameterStack.top->push_back($1->type);}
-				|	Exp COMMA ExpList {funcParameterStack.top->push_back($1->type);};
-	
+
+ExpList 		:	Exp {funcParameterStack.top()->push_back($1->type);}
+				|	Exp COMMA ExpList {funcParameterStack.top()->push_back($1->type);};
 
 Type 			:	INT{$$ = new variableEntry("", "INT");}
 				|	BYTE{$$ = new variableEntry("", "BYTE");}
@@ -345,6 +346,7 @@ Exp 			:	LPAREN Exp RPAREN {$$= $2;}
 							errorMismatch(yylineno); 
 							exit(0);
 						}						
+
 					}; 
 %%
 
@@ -389,17 +391,19 @@ int yyerror(const char * message)
 	exit(0);
 }
 
-bool variableSearch(stack<Scope*> *scopes, string name) {
+variableEntry* variableSearch(stack<Scope*> *scopes, string name) {
 	if (scopes->empty()) {
-		return false;
+		return NULL;
 	}
-	else if (scopes->top()->getVariable(name)) {
-		return true;
+	variableEntry* entry = scopes->top()->getVariable(name);
+
+	if (entry) {
+		return entry;
 	}
 
 	Scope* s = scopes->top();
 	scopes->pop();
-	bool res = variableSearch(scopes, name);
+	variableEntry* res = variableSearch(scopes, name);
 	scopes->push(s);
 	return res;
 }
