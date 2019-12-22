@@ -79,6 +79,7 @@ FuncDecl		:	RetType ID {
 						newFunction.type.returnType = $1->type;
 						newFunction.type.paramTypes = vector<string>();
 						addScope(scopes, offsets);
+						funcParamOffset = -1;
 					} LPAREN Formals RPAREN LBRACE Statements RBRACE {
 						removeScope(scopes, offsets);
 						scopes.top()->insertFunction(newFunction);
@@ -107,7 +108,8 @@ FormalsList		:	FormalDecl
 	
 FormalDecl 		:	Type ID {
 						//TODO can var be func name?
-						//scopes.top()->insertVariable($1->type, $2->name, /*todo offset*/0);
+                        newVariable = variableEntry($2->name, $1->type, paramOffset--);
+						scopes.top()->insertVariable(newVariable);
                         newFunction.type.addParam($1->type);
 					}
 				|	EnumType ID {

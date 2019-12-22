@@ -14,7 +14,7 @@ using namespace output;
 
 #define INT_SIZE 1
 #define BOOL_SIZE 1
-#define startParamOffset = -1;
+#define funcParamOffset = -1;
 #define YYSTYPE variableEntry*
 
 namespace scopeTables{
