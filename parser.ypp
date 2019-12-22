@@ -79,7 +79,6 @@ FuncDecl		:	RetType ID {
 						newFunction.type.returnType = $1->type;
 						newFunction.type.paramTypes = vector<string>();
 						addScope(scopes, offsets);
-						funcParamOffset = -1;
 					} LPAREN Formals RPAREN LBRACE Statements RBRACE {
 						removeScope(scopes, offsets);
 						scopes.top()->insertFunction(newFunction);
@@ -94,7 +93,8 @@ EnumDecl		:	ENUM ID {
 							exit(0);
 						}	
 					} LBRACE EnumeratorList RBRACE SC {
-						//scopes.top()->insertEnum($4);
+						newEnum.name = $2->name;
+						scopes.top()->insertEnum(newEnum);
 					};
 	
 RetType			:	Type {$$ = $1;}
@@ -108,8 +108,7 @@ FormalsList		:	FormalDecl
 	
 FormalDecl 		:	Type ID {
 						//TODO can var be func name?
-                        newVariable = variableEntry($2->name, $1->type, paramOffset--);
-						scopes.top()->insertVariable(newVariable);
+						//scopes.top()->insertVariable($1->type, $2->name, /*todo offset*/0);
                         newFunction.type.addParam($1->type);
 					}
 				|	EnumType ID {
@@ -118,16 +117,16 @@ FormalDecl 		:	Type ID {
 					};
 
 EnumeratorList	:	Enumerator { 
-						enumType tmp = vector<string>(1, $1->name);
-                        $$ = new enumEntry(tmp);}
+						newEnum.name = "";
+						newEnum.type.values = vector<string>(1, $1->name);
+                    }
 				|	EnumeratorList COMMA Enumerator { 
-						vector<string>& enumValues = $$->type.values;
-						if (std::find(enumValues.begin(), enumValues.end(), $2->name) != enumValues.end()) {
+						vector<string>& enum_values = newEnum.type.values;
+						if (std::find(enum_values.begin(), enum_values.end(), $3->name) != enum_values.end()) {
 							errorDef(yylineno, $3->name);
 							exit(0);
 						}
-						$$ = $1;
-						$$->type.values.push_back($3->name);
+						enum_values.push_back($3->name);
 					};		
 
 Enumerator		:	ID;

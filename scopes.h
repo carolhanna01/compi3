@@ -14,7 +14,7 @@ using namespace output;
 
 #define INT_SIZE 1
 #define BOOL_SIZE 1
-#define funcParamOffset = -1;
+#define startParamOffset = -1;
 #define YYSTYPE variableEntry*
 
 namespace scopeTables{
@@ -26,7 +26,7 @@ namespace scopeTables{
             t type;
             int offset;
             int value;
-            entry(string name="", t type= t(), int offset=0, int value=0):name(name), type(type), offset(offset), value(value){};
+            entry(string name = "", t type = t(), int offset = 0, int value = 0):name(name), type(type), offset(offset), value(value){};
         };
 
         class functionType {
