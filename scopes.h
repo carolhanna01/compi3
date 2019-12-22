@@ -89,10 +89,22 @@ namespace scopeTables{
                 }
                 return nullptr;
             }
+
             enumEntry* getEnum(const string &name) {
                 for (enumEntry& e : enums) {
                     if (name == e.name) {
                         return &e;
+                    }
+                }
+                return nullptr;
+            }
+
+            enumEntry* getEnumWithEnumeration(const string& enumeration) {
+                for (enumEntry& e : enums) {
+                    for (string enum_value : e.type.values) { 
+                        if (enum_value == enumeration) {
+                            return &e;
+                        }
                     }
                 }
                 return nullptr;

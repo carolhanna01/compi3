@@ -19,11 +19,9 @@
 	functionEntry newFunction = functionEntry();
 	variableEntry newVariable = variableEntry();
 	enumEntry newEnum = enumEntry();
-	int funcParamOffset = -1;
-
 
 	YYSTYPE dealWithBinop(YYSTYPE left, YYSTYPE right);
-	YYSTYPE dealwithBoolOutput(string check_for, YYSTYPE left,  YYSTYPE right=NULL);
+	YYSTYPE dealwithBoolOutput(string check_for, YYSTYPE left,  YYSTYPE right);
     enumEntry* enumSearch(stack<Scope*> *scopes, string name);
 	bool variableSearch(stack<Scope*> *scopes, string name);
 	int yyerror(const char * message);
@@ -110,9 +108,7 @@ FormalsList		:	FormalDecl
 	
 FormalDecl 		:	Type ID {
 						//TODO can var be func name?
-
-                        newVariable = variableEntry($2->name, $1->type, funcParamOffset--);
-						scopes.top()->insertVariable(newVariable);
+						//scopes.top()->insertVariable($1->type, $2->name, /*todo offset*/0);
                         newFunction.type.addParam($1->type);
 					}
 				|	EnumType ID {
@@ -120,20 +116,19 @@ FormalDecl 		:	Type ID {
 						newFunction.type.addParam($1->type);
 					};
 
-EnumeratorList	:	Enumerator {
+EnumeratorList	:	Enumerator { 
 						newEnum.name = "";
 						newEnum.type.values = vector<string>(1, $1->name);
                     }
-
-				|	EnumeratorList COMMA Enumerator {
+				|	EnumeratorList COMMA Enumerator { 
 						vector<string>& enum_values = newEnum.type.values;
 						if (std::find(enum_values.begin(), enum_values.end(), $3->name) != enum_values.end()) {
 							errorDef(yylineno, $3->name);
 							exit(0);
 						}
 						enum_values.push_back($3->name);
-					};
-	
+					};		
+
 Enumerator		:	ID;
 	
 Statements		:	Statement
@@ -168,7 +163,7 @@ Statement		:	LBRACE {
 					}
 
 				|	EnumDecl
-				|	Type ID ASSIGN Exp SC { 
+				|	Type ID ASSIGN Exp SC {  // TODO - check if all Exp result in adding to scope as requested.
 						if (variableSearch(&scopes, $2->name)) {
 							errorDef(yylineno, $2->name);
 							exit(0);
@@ -191,11 +186,11 @@ Statement		:	LBRACE {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
-						else if ($3->type != "ENUM") {
+						else if ($3->type != "ENUM") { //TODO - is this necessary? Can I insert numbers? Should i check if its valid string? Enumeration?
 							errorUndefEnumValue(yylineno, $2->name);
 							exit(0);
 						}
-                        newVariable = variableEntry($2->name, $1->type, offsets.top()) //TODO - add values
+                        newVariable = variableEntry($2->name, $1->type, offsets.top(), $3->value);
 						scopes.top()->insertVariable(newVariable);
 						offsets.top()++;
 					}
@@ -218,7 +213,7 @@ Statement		:	LBRACE {
 						}
 					}
 				|	RETURN Exp SC {
-						if (scopes.top()->currentFunc->returnType != $2->type && (scopes.top()->currentFunc->returnType != "INT" || $2->type != "BYTE")){
+						if (scopes.top()->currentFunc->returnType != $2->type && (tables.top()->currentFunc->returnType != "INT" || $2->type != "BYTE")){
 							errorMismatch(yylineno);
 							exit(0);
 						}
@@ -250,7 +245,7 @@ Statement		:	LBRACE {
 						}
 					} RPAREN {
 						addScope(scopes, offsets);
-						scopes.top()->insideLoop = true;
+						scope.top()->insideLoop = true;
 					} Statement {
 						removeScope(scopes, offsets);
 					}
@@ -295,7 +290,7 @@ Call 			:	ID {
 						$$ = new variableEntry("", f->type.returnType);
 					};
 	
-ExpList 		:	Exp {funcParameterStack.top()->push_back($1->type);}
+ExpList 		:	Exp {funcParameterStack.top->push_back($1->type);}
 				|	Exp COMMA ExpList {funcParameterStack.top->push_back($1->type);};
 	
 
@@ -316,7 +311,7 @@ Exp 			:	LPAREN Exp RPAREN {$$= $2;}
 						if (!var) {
 							errorUndef(yylineno, $1->name);
 						}
-						$$ = new variableEntry("", $1->type);
+						$$ = new variableEntry(var->name, var->type, var->offset, var->value);
 					}  
 				|	Call { 
 						$$ = $1; 
@@ -326,21 +321,30 @@ Exp 			:	LPAREN Exp RPAREN {$$= $2;}
 				|	STRING {$$ = new variableEntry("", "STRING");}
 				|	TRUE {$$ = new variableEntry("", "BOOL");}
 				|	FALSE {$$ = new variableEntry("", "BOOL");}
-				|	NOT Exp {$$ = dealwithBoolOutput("BOOL", $2);}
+				|	NOT Exp {$$ = dealWithBoolOutput("BOOL", $2);}
 				|	Exp AND Exp {$$ = dealwithBoolOutput("BOOL", $1, $3);}
 				|	Exp OR Exp {$$ = dealwithBoolOutput("BOOL", $1, $3);}
 				|	Exp EQUALITY Exp {$$ = dealwithBoolOutput("INT", $1, $3);}
 				|	Exp RELATION Exp {$$ = dealwithBoolOutput("INT", $1, $3);}
 				|	LPAREN Type RPAREN Exp { 
-						enumEntry* enum_entry = enumSearch(&scopes, $4->name);
-						if (!enum_entry) {
-							errorUndefEnum(yylineno, $4->name);
-						} 
-						else if ($2->type != "INT") {
+						if ($2->type != "INT") { // CONVERSION IS NOT TO INT
 							errorMismatch(yylineno); //TODO - is this the right error?
+							exit(0);
+						} //TODO - make sure all enum assignments get requested value.
+
+						variableEntry* var = variableSearch(&scopes, $4->name); //TODO - below assumes a variable cant have an enum name. True?
+						enumEntry* enum_entry = enumSearchWithEnumeration(&scopes, $4->name); //TODO - make sure i cant insert same enum values for more than one enum.
+						if (vat && var->type == "ENUM") { // CONVERSION IS FROM VARIABLE
+							$$ = new variableEntry("", "INT", 0, var->value);
 						}
-						enum_entry->type.values();
-						//$$ = new variableEntry("", "INT", 0, ) todo: finish this
+						else if (enum_entry) { //CONVERSION IS FROM AN ENUMERATION STRING
+							int enum_value = getEnumValue(enum_entry.type.values, $4->name);
+							$$ = new variableEntry("", "INT", 0, enum_value);
+						}
+						else {
+							errorMismatch(yylineno); 
+							exit(0);
+						}						
 					}; 
 %%
 
@@ -413,7 +417,23 @@ enumEntry* enumSearch(stack<Scope*> *scopes, string name) {
 	scopes->pop();
 	entry = enumSearch(scopes, name);
 	scopes->push(s);
-	//return res; todo: remove this line?
+	return entry;
+}
+
+enumEntry* enumSearchWithEnumeration(stack<Scope*> *scopes, string enumeration) {
+	if (scopes->empty()) {
+		return NULL;
+	}
+	enumEntry* entry = scopes->top()->getEnumWithEnumeration(enumeration); 
+	if (entry) {
+		return entry;
+	}
+
+	Scope* s = scopes->top();
+	scopes->pop();
+	entry = enumSearch(scopes, name);
+	scopes->push(s);
+	return entry; 
 }
 
 bool similarParameters(const vector<string>& expected, const vector<string>& actual) {
@@ -429,6 +449,17 @@ bool similarParameters(const vector<string>& expected, const vector<string>& act
 		actual_iter++;
 	}
 	return true;
+}
+
+int getEnumValue(const string<vector>& enumerations, const string& name) {
+	int val= 0;
+	string<vector>::const_iterator it;
+	for (it = enumerations.cbegin(); it != enumerations.cend(); ++it) {
+		if (*it == name) {
+			return val;
+		}
+		++val;
+	}
 }
 
 YYSTYPE dealwithBoolOutput(string check_for, YYSTYPE left,  YYSTYPE right= NULL) {
