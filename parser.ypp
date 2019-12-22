@@ -109,7 +109,7 @@ FormalDecl 		:	Type ID {
                         newFunction.type.addParam($1->type);
 					}
 				|	EnumType ID {
-						scopes.top()->insertVariable($1->type, $2->name, /*todo offset*/0);
+						//scopes.top()->insertVariable($1->type, $2->name, /*todo offset*/0);
 						newFunction.type.addParam($1->type);
 					};
 	
@@ -147,7 +147,7 @@ Statement		:	LBRACE {
 							errorUndefEnum(yylineno, $2->name);
 							exit(0);
 						}
-						else if (recursiveSearch(&scopes, $2->name)) {
+						else if (variableSearch(&scopes, $2->name)) {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
@@ -174,7 +174,7 @@ Statement		:	LBRACE {
 							errorUndefEnum(yylineno, $2->name);
 							exit(0);
 						}
-						else if (recursiveSearch(&scopes, $2->name)) {
+						else if (variableSearch(&scopes, $2->name)) {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}

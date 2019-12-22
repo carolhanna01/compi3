@@ -33,7 +33,7 @@ namespace scopeTables{
             string returnType;
             vector<string> paramTypes;
 
-            functionType(string returnType= "", vector<string> paramTypes= vector<string>():
+            functionType(string returnType= "", vector<string> paramTypes= vector<string>()):
             returnType(returnType), paramTypes(paramTypes){};
 
             void addParam(string paramType) {
@@ -138,7 +138,7 @@ namespace scopeTables{
         };
 
     void addScope (stack<Scope*> scopes, stack<int> offsets){
-        scopes.push(new Scope(scopes.top()));
+        scopes.push(new Scope(*scopes.top()));
         offsets.push(offsets.top());
     }
 
