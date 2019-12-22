@@ -91,7 +91,7 @@ EnumDecl		:	ENUM ID {
 							error(0);
 						}	
 					} LBRACE EnumeratorList RBRACE SC {
-						scopes.insertEnum($4);
+						scopes.top()->insertEnum($4);
 					};
 	
 RetType			:	Type {$$ = $1;}
@@ -106,11 +106,11 @@ FormalsList		:	FormalDecl
 FormalDecl 		:	Type ID {
 						//TODO can var be func name?
 						scopes.top()->insertVariable($1->type, $2->name, /*todo offset*/0);
-						newFunc.type.addParam($1->type);					
+						newFunction.type.addParam($1->type);
 					}
 				|	EnumType ID {
 						scopes.top()->insertVariable($1->type, $2->name, /*todo offset*/0);
-						newFunc.type.addParam($1->type);
+						newFunction.type.addParam($1->type);
 					};
 	
 EnumeratorList	:	Enumerator {$$ = new enumEntry("", vector<string>(1, $1->name));}
@@ -152,7 +152,7 @@ Statement		:	LBRACE Statements RBRACE{}
 					}
 				|	EnumDecl{}
 				|	Type ID ASSIGN Exp SC { 
-						if (recursiveSearch(&scopes, $2->name)) {
+						if (variableSearch(&scopes, $2->name)) {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
@@ -310,7 +310,7 @@ main(){
 	scopes.top()->insertFunction(printiEntry);
 	
 	yyparse();
-	functionEntry* checkMain = tables.top()->getFunction("main");
+	functionEntry* checkMain = scopes.top()->getFunction("main");
 
 	if (checkMain == NULL || checkMain->type.paramTypes.size()!=0 || checkMain->type.returnType != "VOID"){
 		errorMainMissing();
@@ -336,7 +336,7 @@ bool variableSearch(stack<Scope*> *scopes, string name) {
 	Scope s = scopes->top();
 	scopes->pop();
 	bool res = variableSearch(scopes, name);
-	scopes.push(s);
+	scopes->push(s);
 	return res;
 }
 
@@ -344,7 +344,7 @@ bool enumSearch(stack<Scope*> *scopes, string name) {
 	if (scopes->empty()) {
 		return false;
 	}
-	else if (scopes.top()->getEnum(name)) {
+	else if (scopes->top()->getEnum(name)) {
 		return true;
 	}
 
