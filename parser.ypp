@@ -88,7 +88,7 @@ Enums			:	/*epsilon*/{};
 EnumDecl		:	ENUM ID {
 						if (enumSearch(scopes, $2->name)) {
 							errorDef(yylineno, $2->name);
-							error(0);
+							exit(0);
 						}	
 					} LBRACE EnumeratorList RBRACE SC {
 						scopes.insertEnum($4);
@@ -129,7 +129,9 @@ Enumerator		:	ID;
 Statements		:	Statement
 				|	Statements Statement;
 
-Statement		:	LBRACE Statements RBRACE{}
+Statement		:	LBRACE {addScope();} Statements {removeScope();} RBRACE {
+						
+					}
 				|	Type ID SC {
 						if (recursiveSearch(&scopes, $2->name)) {
 							errorDef(yylineno, $2->name);
@@ -150,7 +152,7 @@ Statement		:	LBRACE Statements RBRACE{}
 						scopes.top()->insertVariable($1->type, $2->name, offsets.top());
 						offsets.top()++;
 					}
-				|	EnumDecl{}
+				|	EnumDecl {}
 				|	Type ID ASSIGN Exp SC { 
 						if (recursiveSearch(&scopes, $2->name)) {
 							errorDef(yylineno, $2->name);
@@ -186,7 +188,7 @@ Statement		:	LBRACE Statements RBRACE{}
 							exit(0);
 						}
 					}
-				|	Call SC{}
+				|	Call SC
 				|	RETURN SC {
 						if (scopes.top()->currentFunc->returnType != "VOID"){
 							errorMismatch(yylineno);
@@ -194,22 +196,51 @@ Statement		:	LBRACE Statements RBRACE{}
 						}
 					}
 				|	RETURN Exp SC {
-						if (scopes.top()->currentFunc->returnType == "VOID"){
+						if (scopes.top()->currentFunc->returnType != $2->type && (tables.top()->currentFunc->returnType != "INT" || $2->type != "BYTE")){
 							errorMismatch(yylineno);
 							exit(0);
 						}
 					}
-				|	IF LPAREN Exp RPAREN {addScope(scopes, offsets);} Statement {removeScope(scopes, offsets);} ELSE {addScope(scopes, offsets)} Statement {}
-				|	IF LPAREN Exp RPAREN {addScope(scopes, offsets);} Statement {removeScope(scopes, offsets);}
-				|	WHILE LPAREN Exp RPAREN Statement{}
-				|	BREAK SC{
+				|	IF LPAREN Exp {
+						if ($3->type != "BOOL") {
+							errorMismatch(yylineno);
+							exit(0);
+						}
+					} RPAREN {
+						addScope(scopes, offsets);
+					} Statement {
+						removeScope(scopes, offsets);
+					} ELSE {addScope(scopes, offsets)} Statement {}
+				|	IF LPAREN Exp {
+						if ($3->type != "BOOL") {
+							errorMismatch(yylineno);
+							exit(0);
+						}
+					} RPAREN {
+						addScope(scopes, offsets);
+					} Statement {
+						removeScope(scopes, offsets);
+					}
+				|	WHILE LPAREN Exp {
+						if ($3->type != "BOOL") {
+							errorMismatch(yylineno);
+							exit(0);
+						}
+					} RPAREN {
+						addScope(scopes, offsets);
+						scope.top()->insideLoop = true;
+					} Statement {
+						removeScope(scopes, offsets);
+					}
+				|	BREAK SC {
 						if(scopes.top()->insideLoop == false){
 							errorUnexpectedBreak(yylineno);
 							exit(0);
 						}
+
 					}
 					
-				|	CONTINUE SC{
+				|	CONTINUE SC {
 						if(scopes.top()->insideLoop == false){
 							errorUnexpectedContinue(yylineno);
 							exit(0);
@@ -223,13 +254,13 @@ Call 			:	ID {
 						if(!f) {
 							errorUndefFunc(yylineno, $1->name);
 							exit(0);
-						} else if (equal(f->type.paramTypes.begin(), f->type.paramTypes.end(), funcParameterStack.top.begin())) { 
+						} else if (!equal(f->type.paramTypes.begin(), f->type.paramTypes.end(), funcParameterStack.top.begin())) { 
 							// CHECKS IF PARAMTER TYPES ALIGN WITH FUNCTION TYPES
 							errorPrototypeMismatch(lineno, id, types);
 							exit(0);
 						}
 						funcParameterStack.pop();
-						$$ = new variableEntry("", f->type.returnType);					
+						$$ = new variableEntry("", f->type.returnType);
 					}
 				|	ID LPAREN RPAREN {
 						functionEntry* f = scopes.top()->getFunction($1->name);
