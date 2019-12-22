@@ -2,6 +2,7 @@
 
 /* Declarations section */
 #include <stdio.h>
+#include "scope"
 #include "parser.tab.hpp"
 #include "hw3_output.hpp"
 
@@ -55,12 +56,19 @@ continue 							return CONTINUE;
 \/									return DIV;
 \-									return SUB;
 \+									return ADD;
-{letter}({letter}|{digit})*			return ID;
-0|{positive}+{digit}*				return NUM;
+{letter}({letter}|{digit})*			{
+										yylval = new variableEntry(yytext);
+										return ID;
+									};
+0|{positive}+{digit}*				{
+										yylval = new variableEntry("", "", 0, atoi(yytext));
+										return NUM;
+									};
 \"([^\n\r\"\\]|\\[rnt"\\])+\"		return STRING;
 {comment}							;
 {whitespace}						;
-.									{errorLex(yylineno);
+.									{ 	
+										errorLex(yylineno);
 										exit(0);
 									};
 
