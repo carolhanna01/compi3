@@ -154,6 +154,8 @@ Statement		:	LBRACE {
 						scopes.top()->insertVariable($1->type, $2->name, offsets.top());
 						offsets.top()++;
 					}
+					SHE DONE ALREADY DONE HAD HERSESESSESES
+					openLibrary();
 				|	EnumDecl
 				|	Type ID ASSIGN Exp SC { 
 						if (variableSearch(&scopes, $2->name)) {
