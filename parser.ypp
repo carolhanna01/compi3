@@ -129,9 +129,11 @@ Enumerator		:	ID;
 Statements		:	Statement
 				|	Statements Statement;
 
-Statement		:	LBRACE {addScope();} Statements {removeScope();} RBRACE {
-						
-					}
+Statement		:	LBRACE {
+						addScope();
+					} Statements {
+						removeScope();
+					} RBRACE
 				|	Type ID SC {
 						if (recursiveSearch(&scopes, $2->name)) {
 							errorDef(yylineno, $2->name);
@@ -152,7 +154,7 @@ Statement		:	LBRACE {addScope();} Statements {removeScope();} RBRACE {
 						scopes.top()->insertVariable($1->type, $2->name, offsets.top());
 						offsets.top()++;
 					}
-				|	EnumDecl {}
+				|	EnumDecl
 				|	Type ID ASSIGN Exp SC { 
 						if (variableSearch(&scopes, $2->name)) {
 							errorDef(yylineno, $2->name);
@@ -290,9 +292,12 @@ Exp 			:	LPAREN Exp RPAREN {$$= $2;}
 				|	Exp ADD Exp {$$ = dealWithBinop($1, $2);}
 				|	Exp SUB Exp {$$ = dealWithBinop($1, $2);}
 				|	ID { 
-						//todo - get table top, find variable
-						//todo: $$ = new variableEntry("", /*todo*/);
-					}
+						variableEntry* var = variableSearch(&scopes, $1->name);
+						if (!var) {
+							errorUndef(yylineno, $1->name);
+						}
+						$$ = new variableEntry("", $1->type);
+					}  
 				|	Call { 
 						$$ = $1; 
 					}
