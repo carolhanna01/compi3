@@ -117,7 +117,8 @@ FormalDecl 		:	Type ID {
 						newFunction.type.addParam($1->type);
 					};
 
-EnumeratorList	:	Enumerator { enumType tmp = vector<string>(1, $1->name);
+EnumeratorList	:	Enumerator { 
+						enumType tmp = vector<string>(1, $1->name);
                         $$ = new enumEntry(tmp);}
 				|	EnumeratorList COMMA Enumerator { 
 						vector<string>& enumValues = $$->type.values;
@@ -127,8 +128,8 @@ EnumeratorList	:	Enumerator { enumType tmp = vector<string>(1, $1->name);
 						}
 						$$ = $1;
 						$$->type.values.push_back($3->name);
-					};
-	
+					};		
+
 Enumerator		:	ID;
 	
 Statements		:	Statement
@@ -186,11 +187,11 @@ Statement		:	LBRACE {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
-						else if ($3->type != "ENUM") {
+						else if ($3->type != "ENUM") { //TODO - is this necessary? Can I insert numbers? Should i check if its valid string? Enumeration?
 							errorUndefEnumValue(yylineno, $2->name);
 							exit(0);
 						}
-                        newVariable = variableEntry($2->name, $1->type, offsets.top()) //TODO - add values
+                        newVariable = variableEntry($2->name, $1->type, offsets.top(), $3->value);
 						scopes.top()->insertVariable(newVariable);
 						offsets.top()++;
 					}
