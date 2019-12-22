@@ -156,6 +156,8 @@ Statement		:	LBRACE {
 					}
 					SHE DONE ALREADY DONE HAD HERSESESSESES
 					openLibrary();
+
+					sas
 				|	EnumDecl
 				|	Type ID ASSIGN Exp SC { 
 						if (variableSearch(&scopes, $2->name)) {
