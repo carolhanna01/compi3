@@ -25,7 +25,7 @@ namespace scopeTables{
             const string &name;
             t type;
             int offset;
-            entry(string name="", t type="", int offset=0):name(name), type(type), offset(offset){};
+            entry(string name="", t type= t(), int offset=0):name(name), type(type), offset(offset){};
         };
 
         class functionType {
@@ -33,7 +33,7 @@ namespace scopeTables{
             string returnType;
             vector<string> paramTypes;
 
-            functionType(string returnType, vector<string> paramTypes):
+            functionType(string returnType= "", vector<string> paramTypes= vector<string>():
             returnType(returnType), paramTypes(paramTypes){};
 
             void addParam(string paramType) {
@@ -64,10 +64,10 @@ namespace scopeTables{
 
 
             // Constructor
-            Scope(bool inLoop){
+            Scope(){
             variables = vector<variableEntry>();
             functions = vector<functionEntry>();
-            insideLoop =inLoop;
+            insideLoop =false;
             currentFunc = nullptr;
             }
 
