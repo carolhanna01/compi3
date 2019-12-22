@@ -27,6 +27,7 @@
 	variableEntry* variableSearch(stack<Scope*> *scopes, string name);
 	bool similarParameters(const vector<string>& expected, const vector<string>& actual);
 	int yyerror(const char * message);
+	int funcParamOffset = -1;
 
 
 %}
@@ -110,11 +111,13 @@ FormalsList		:	FormalDecl
 	
 FormalDecl 		:	Type ID {
 						//TODO can var be func name?
-						//scopes.top()->insertVariable($1->type, $2->name, /*todo offset*/0);
+						newVariable = variableEntry($2->name, $1->type, paramOffset--);
+						scopes.top()->insertVariable(newVariable);
                         newFunction.type.addParam($1->type);
 					}
 				|	EnumType ID {
-						//scopes.top()->insertVariable($1->type, $2->name, /*todo offset*/0);
+						newVariable = variableEntry($2->name, $1->type, paramOffset--);
+						scopes.top()->insertVariable(newVariable);
 						newFunction.type.addParam($1->type);
 					};
 
@@ -188,7 +191,7 @@ Statement		:	LBRACE {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
-						else if ($3->type != "ENUM") { //TODO - is this necessary? Can I insert numbers? Should i check if its valid string? Enumeration?
+						else if ($4->type != "ENUM") { //TODO - make sure that EXP contains legal enum value
 							errorUndefEnumValue(yylineno, $2->name);
 							exit(0);
 						}
