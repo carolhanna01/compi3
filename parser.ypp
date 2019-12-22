@@ -86,7 +86,7 @@ Enums			:	/*epsilon*/{};
 				|	EnumDecl Enums {};
 
 EnumDecl		:	ENUM ID {
-						if (enumSearch(scopes, $2->name)) {
+						if (enumSearch(&scopes, $2->name)) {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}	
@@ -106,7 +106,7 @@ FormalsList		:	FormalDecl
 FormalDecl 		:	Type ID {
 						//TODO can var be func name?
 						scopes.top()->insertVariable($1->type, $2->name, /*todo offset*/0);
-						newFunction.type.addParam($1->type);					
+                        newFunction.type.addParam($1->type);
 					}
 				|	EnumType ID {
 						scopes.top()->insertVariable($1->type, $2->name, /*todo offset*/0);
@@ -135,7 +135,7 @@ Statement		:	LBRACE {
 						removeScope();
 					} RBRACE
 				|	Type ID SC {
-						if (recursiveSearch(&scopes, $2->name)) {
+						if (variableSearch(&scopes, $2->name)) {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
@@ -425,4 +425,3 @@ YYSTYPE dealWithBinop(YYSTYPE left, YYSTYPE right) {
 	string type = left->type == "BYTE" && right->type == "BYTE" ? "BYTE" : "INT";
 	return new variableEntry("", type);
 }
-
