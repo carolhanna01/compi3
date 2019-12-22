@@ -254,9 +254,8 @@ Call 			:	ID {
 						if(!f) {
 							errorUndefFunc(yylineno, $1->name);
 							exit(0);
-						} else if (!equal(f->type.paramTypes.begin(), f->type.paramTypes.end(), funcParameterStack.top.begin())) { 
-							// CHECKS IF PARAMTER TYPES ALIGN WITH FUNCTION TYPES
-							errorPrototypeMismatch(lineno, id, types);
+						} else if (!similarParameters(f->type.paramTypes, funcParameterStack.top())) {
+							errorPrototypeMismatch(lineno, $1->name, f->type.paramTypes);
 							exit(0);
 						}
 						funcParameterStack.pop();
@@ -386,6 +385,20 @@ bool enumSearch(stack<Scope*> *scopes, string name) {
 	return res;
 }
 
+bool similarParameters(const vectors<string>& expected, const vectors<string>& actual) {
+	if (expected.size() != actual.size()) {
+		return false;
+	}
+	vector<string>::const_iterator expected_iter = expected.cbegin();
+	vector<string>::const_iterator actual_iter = actual.cbegin();
+	while (expected_iter != expected.cend()) {
+		if (*expected_iter != *actual_iter && (*expected_iter != "INT" || *actual_iter != "BYTE")) 
+			return false;
+		expected_iter++;
+		actual_iter++
+	}
+	return true;
+}
 
 YYSTYPE dealwithBoolOutput(YYSTYPE left,  YYSTYPE right, string check_for) {
 	if (right && right->type != check_for) {
