@@ -6,6 +6,7 @@
 
 	#include <iostream>
 	#include <stdlib.h>
+	#include <cstring>
 	#include <algorithm>
 	using namespace output;
 	using namespace scopeTables;
@@ -26,7 +27,9 @@
     enumEntry* enumSearch(stack<Scope*> *scopes, string name);
 	variableEntry* variableSearch(stack<Scope*> *scopes, string name);
 	bool similarParameters(const vector<string>& expected, const vector<string>& actual);
+	enumEntry* enumSearchWithEnumeration(stack<Scope*> *scopes, string enumeration);
 	int yyerror(const char * message);
+	int getEnumValue(const vector<string>& enumerations, const string& name);
 
 
 %}
@@ -248,7 +251,7 @@ Statement		:	LBRACE {
 						}
 					} RPAREN {
 						addScope(scopes, offsets);
-						scope.top()->insideLoop = true;
+						scopes.top()->insideLoop = true;
 					} Statement {
 						removeScope(scopes, offsets);
 					}
@@ -292,8 +295,8 @@ Call 			:	ID {
 						$$ = new variableEntry("", f->type.returnType);
 					};
 
-ExpList 		:	Exp {funcParameterStack.top()->push_back($1->type);}
-				|	Exp COMMA ExpList {funcParameterStack.top()->push_back($1->type);};
+ExpList 		:	Exp {funcParameterStack.top().push_back($1->type);}
+				|	Exp COMMA ExpList {funcParameterStack.top().push_back($1->type);};
 
 Type 			:	INT{$$ = new variableEntry("", "INT");}
 				|	BYTE{$$ = new variableEntry("", "BYTE");}
@@ -335,11 +338,11 @@ Exp 			:	LPAREN Exp RPAREN {$$= $2;}
 
 						variableEntry* var = variableSearch(&scopes, $4->name); //TODO - below assumes a variable cant have an enum name. True?
 						enumEntry* enum_entry = enumSearchWithEnumeration(&scopes, $4->name); //TODO - make sure i cant insert same enum values for more than one enum.
-						if (vat && var->type == "ENUM") { // CONVERSION IS FROM VARIABLE
+						if (var && var->type == "ENUM") { // CONVERSION IS FROM VARIABLE
 							$$ = new variableEntry("", "INT", 0, var->value);
 						}
 						else if (enum_entry) { //CONVERSION IS FROM AN ENUMERATION STRING
-							int enum_value = getEnumValue(enum_entry.type.values, $4->name);
+							int enum_value = getEnumValue(enum_entry->type.values, $4->name);
 							$$ = new variableEntry("", "INT", 0, enum_value);
 						}
 						else {
@@ -403,7 +406,7 @@ variableEntry* variableSearch(stack<Scope*> *scopes, string name) {
 
 	Scope* s = scopes->top();
 	scopes->pop();
-	variableEntry* res = variableSearch(&scopes, name);
+	variableEntry* res = variableSearch(scopes, name);
 	scopes->push(s);
 	return res;
 }
@@ -419,7 +422,7 @@ enumEntry* enumSearch(stack<Scope*> *scopes, string name) {
 
 	Scope* s = scopes->top();
 	scopes->pop();
-	entry = enumSearch(&scopes, name);
+	entry = enumSearch(scopes, name);
 	scopes->push(s);
 	return entry;
 }
@@ -435,7 +438,7 @@ enumEntry* enumSearchWithEnumeration(stack<Scope*> *scopes, string enumeration) 
 
 	Scope* s = scopes->top();
 	scopes->pop();
-	entry = enumSearch(scopes, name);
+	entry = enumSearch(scopes, enumeration);
 	scopes->push(s);
 	return entry; 
 }
@@ -455,11 +458,11 @@ bool similarParameters(const vector<string>& expected, const vector<string>& act
 	return true;
 }
 
-int getEnumValue(const string<vector>& enumerations, const string& name) {
+int getEnumValue(const vector<string>& enumerations, const string& name) {
 	int val= 0;
-	string<vector>::const_iterator it;
+	vector<string>::const_iterator it;
 	for (it = enumerations.cbegin(); it != enumerations.cend(); ++it) {
-		if (*it == name) {
+		if (!strcmp(*it, name)) {
 			return val;
 		}
 		++val;
