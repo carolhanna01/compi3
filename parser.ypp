@@ -17,6 +17,8 @@
 	stack<int> offsets;
 	stack<vector<string>> funcParameterStack;
 	functionEntry newFunction = functionEntry();
+	variableEntry newVariable = variableEntry();
+	enumEntry newEnum = enumEntry();
 
 	YYSTYPE dealWithBinop(YYSTYPE left, YYSTYPE right);
 	YYSTYPE dealwithBoolOutput(YYSTYPE left,  YYSTYPE right, string check_for);
@@ -91,7 +93,7 @@ EnumDecl		:	ENUM ID {
 							exit(0);
 						}	
 					} LBRACE EnumeratorList RBRACE SC {
-						scopes.top()->insertEnum($4);
+						//scopes.top()->insertEnum($4);
 					};
 	
 RetType			:	Type {$$ = $1;}
@@ -105,15 +107,16 @@ FormalsList		:	FormalDecl
 	
 FormalDecl 		:	Type ID {
 						//TODO can var be func name?
-						scopes.top()->insertVariable($1->type, $2->name, /*todo offset*/0);
+						//scopes.top()->insertVariable($1->type, $2->name, /*todo offset*/0);
                         newFunction.type.addParam($1->type);
 					}
 				|	EnumType ID {
 						//scopes.top()->insertVariable($1->type, $2->name, /*todo offset*/0);
 						newFunction.type.addParam($1->type);
 					};
-	
-EnumeratorList	:	Enumerator {$$ = new enumEntry("", vector<string>(1, $1->name));}
+
+EnumeratorList	:	Enumerator { enumType tmp = vector<string>(1, $1->name);
+                        $$ = new enumEntry("", tmp);}
 				|	EnumeratorList COMMA Enumerator { 
 						vector<string>& enumValues = $$->type.values;
 						if (std::find(enumValues.begin(), enumValues.end(), $2->name) != enumValues.end()) {
@@ -130,20 +133,21 @@ Statements		:	Statement
 				|	Statements Statement;
 
 Statement		:	LBRACE {
-						addScope();
+						addScope(scopes, offsets);
 					} Statements {
-						removeScope();
+						removeScope(scopes, offsets);
 					} RBRACE
 				|	Type ID SC {
 						if (variableSearch(&scopes, $2->name)) {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
-						scopes.top()->insertVariable($1->type, $2->name, offsets.top());
+                        newVariable= variableEntry($2->name, $1->type, offsets.top())
+						scopes.top()->insertVariable(newVariable);
 						offsets.top()++;
 					}
 				|	EnumType ID SC {
-						if (!enumSearch(scopes, $1->name)) {
+						if (!enumSearch(scopes.top(), $1->name)) {
 							errorUndefEnum(yylineno, $2->name);
 							exit(0);
 						}
@@ -151,7 +155,8 @@ Statement		:	LBRACE {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
-						scopes.top()->insertVariable($1->type, $2->name, offsets.top());
+                        newVariable= variableEntry($2->name, $1->type, offsets.top())
+						scopes.top()->insertVariable(newVariable);
 						offsets.top()++;
 					}
 
@@ -161,11 +166,12 @@ Statement		:	LBRACE {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
-						else if ($1->type != $4 ->type && ($1->type != "INT" || $4->type != "BOOL" $)) {
+						else if ($1->type != $4 ->type && ($1->type != "INT" || $4->type != "BOOL")) {
 							errorMismatch(yylineno); //TODO check
 							exit(0);
 						}
-						scopes.top()->insertVariable($1->type, $2->name, offsets.top());
+                        newVariable= variableEntry($2->name, $1->type, offsets.top())
+						scopes.top()->insertVariable(newVariable);
 						offsets.top()++;
 					}
 				|	EnumType ID ASSIGN Exp SC {
@@ -177,7 +183,8 @@ Statement		:	LBRACE {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
-						scopes.top()->insertVariable($1->type, $2->name, offsets.top());
+                        newVariable= variableEntry($2->name, $1->type, offsets.top())
+						scopes.top()->insertVariable(newVariable);
 						offsets.top()++;
 					}
 				|	ID ASSIGN Exp SC {
@@ -186,7 +193,7 @@ Statement		:	LBRACE {
 							errorUndef(yylineno, $1->name);
 							exit(0);
 						}
-						else if (var->type != $3 ->type && (var->type != "INT" || $3->type != "BOOL" $)) {
+						else if (var->type != $3 ->type && (var->type != "INT" || $3->type != "BOOL")) {
 							errorMismatch(yylineno); //TODO check
 							exit(0);
 						}
@@ -307,11 +314,11 @@ Exp 			:	LPAREN Exp RPAREN {$$= $2;}
 				|	STRING {$$ = new variableEntry("", "STRING");}
 				|	TRUE {$$ = new variableEntry("", "BOOL");}
 				|	FALSE {$$ = new variableEntry("", "BOOL");}
-				|	NOT Exp {$$ = dealWithBoolOutput($2, "BOOL");}
-				|	Exp AND Exp {$$ = dealwithBoolOutput($1, $3, "BOOL");}
-				|	Exp OR Exp {$$ = dealwithBoolOutput($1, $3, "BOOL");}
-				|	Exp EQUALITY Exp {$$ = dealwithBoolOutput($1, $3, "INT");}
-				|	Exp RELATION Exp {$$ = dealwithBoolOutput($1, $3, "INT");}
+				|	NOT Exp {$$ = dealWithBoolOutput("BOOL", $2);}
+				|	Exp AND Exp {$$ = dealwithBoolOutput("BOOL", $1, $3);}
+				|	Exp OR Exp {$$ = dealwithBoolOutput("BOOL", $1, $3);}
+				|	Exp EQUALITY Exp {$$ = dealwithBoolOutput("INT", $1, $3);}
+				|	Exp RELATION Exp {$$ = dealwithBoolOutput("INT", $1, $3);}
 				|	LPAREN Type RPAREN Exp { 
 						if ($2->type != "INT" || $4->type != "ENUM") {
 							//todo what error for bad casing?
@@ -369,7 +376,7 @@ bool variableSearch(stack<Scope*> *scopes, string name) {
 		return true;
 	}
 
-	Scope s = scopes->top();
+	Scope* s = scopes->top();
 	scopes->pop();
 	bool res = variableSearch(scopes, name);
 	scopes->push(s);
@@ -384,29 +391,29 @@ bool enumSearch(stack<Scope*> *scopes, string name) {
 		return true;
 	}
 
-	Scope s = scopes->top();
+	Scope* s = scopes->top();
 	scopes->pop();
 	bool res = enumSearch(scopes, name);
 	scopes->push(s);
 	return res;
 }
 
-bool similarParameters(const vectors<string>& expected, const vectors<string>& actual) {
+bool similarParameters(const vector<string>& expected, const vector<string>& actual) {
 	if (expected.size() != actual.size()) {
 		return false;
 	}
-	vector<string>::const_iterator expected_iter = expected.cbegin();
-	vector<string>::const_iterator actual_iter = actual.cbegin();
-	while (expected_iter != expected.cend()) {
+	vector<string>::const_iterator expected_iter = expected.begin();
+	vector<string>::const_iterator actual_iter = actual.begin();
+	while (expected_iter != expected.end()) {
 		if (*expected_iter != *actual_iter && (*expected_iter != "INT" || *actual_iter != "BYTE")) 
 			return false;
 		expected_iter++;
-		actual_iter++
+		actual_iter++;
 	}
 	return true;
 }
 
-YYSTYPE dealwithBoolOutput(YYSTYPE left,  YYSTYPE right, string check_for) {
+YYSTYPE dealwithBoolOutput(string check_for, YYSTYPE left,  YYSTYPE right= NULL) {
 	if (right && right->type != check_for) {
 		errorMismatch(yylineno);
 		exit(0);

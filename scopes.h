@@ -25,7 +25,8 @@ namespace scopeTables{
             const string &name;
             t type;
             int offset;
-            entry(string name="", t type= t(), int offset=0):name(name), type(type), offset(offset){};
+            int value;
+            entry(string name="", t type= t(), int offset=0, int value=0):name(name), type(type), offset(offset), value(value){};
         };
 
         class functionType {
@@ -98,7 +99,7 @@ namespace scopeTables{
             }
 
             void insertVariable(variableEntry v) {
-                if (getVariable(v.name) != nullptr) {
+                if (getVariable(v.name) != nullptr ) {
                     errorDef(yylineno, v.name);
                     exit(0);
                 }
