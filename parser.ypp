@@ -19,9 +19,11 @@
 	functionEntry newFunction = functionEntry();
 	variableEntry newVariable = variableEntry();
 	enumEntry newEnum = enumEntry();
+	int funcParamOffset = -1;
+
 
 	YYSTYPE dealWithBinop(YYSTYPE left, YYSTYPE right);
-	YYSTYPE dealwithBoolOutput(string check_for, YYSTYPE left,  YYSTYPE right);
+	YYSTYPE dealwithBoolOutput(string check_for, YYSTYPE left,  YYSTYPE right=NULL);
     enumEntry* enumSearch(stack<Scope*> *scopes, string name);
 	bool variableSearch(stack<Scope*> *scopes, string name);
 	int yyerror(const char * message);
@@ -108,7 +110,9 @@ FormalsList		:	FormalDecl
 	
 FormalDecl 		:	Type ID {
 						//TODO can var be func name?
-						//scopes.top()->insertVariable($1->type, $2->name, /*todo offset*/0);
+
+                        newVariable = variableEntry($2->name, $1->type, funcParamOffset--);
+						scopes.top()->insertVariable(newVariable);
                         newFunction.type.addParam($1->type);
 					}
 				|	EnumType ID {
@@ -116,19 +120,20 @@ FormalDecl 		:	Type ID {
 						newFunction.type.addParam($1->type);
 					};
 
-EnumeratorList	:	Enumerator { 
+EnumeratorList	:	Enumerator {
 						newEnum.name = "";
 						newEnum.type.values = vector<string>(1, $1->name);
                     }
-				|	EnumeratorList COMMA Enumerator { 
+
+				|	EnumeratorList COMMA Enumerator {
 						vector<string>& enum_values = newEnum.type.values;
 						if (std::find(enum_values.begin(), enum_values.end(), $3->name) != enum_values.end()) {
 							errorDef(yylineno, $3->name);
 							exit(0);
 						}
 						enum_values.push_back($3->name);
-					};		
-
+					};
+	
 Enumerator		:	ID;
 	
 Statements		:	Statement
@@ -186,11 +191,11 @@ Statement		:	LBRACE {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
-						else if ($3->type != "ENUM") { //TODO - is this necessary? Can I insert numbers? Should i check if its valid string? Enumeration?
+						else if ($3->type != "ENUM") {
 							errorUndefEnumValue(yylineno, $2->name);
 							exit(0);
 						}
-                        newVariable = variableEntry($2->name, $1->type, offsets.top(), $3->value);
+                        newVariable = variableEntry($2->name, $1->type, offsets.top()) //TODO - add values
 						scopes.top()->insertVariable(newVariable);
 						offsets.top()++;
 					}
@@ -213,7 +218,7 @@ Statement		:	LBRACE {
 						}
 					}
 				|	RETURN Exp SC {
-						if (scopes.top()->currentFunc->returnType != $2->type && (tables.top()->currentFunc->returnType != "INT" || $2->type != "BYTE")){
+						if (scopes.top()->currentFunc->returnType != $2->type && (scopes.top()->currentFunc->returnType != "INT" || $2->type != "BYTE")){
 							errorMismatch(yylineno);
 							exit(0);
 						}
@@ -245,7 +250,7 @@ Statement		:	LBRACE {
 						}
 					} RPAREN {
 						addScope(scopes, offsets);
-						scope.top()->insideLoop = true;
+						scopes.top()->insideLoop = true;
 					} Statement {
 						removeScope(scopes, offsets);
 					}
@@ -290,7 +295,7 @@ Call 			:	ID {
 						$$ = new variableEntry("", f->type.returnType);
 					};
 	
-ExpList 		:	Exp {funcParameterStack.top->push_back($1->type);}
+ExpList 		:	Exp {funcParameterStack.top()->push_back($1->type);}
 				|	Exp COMMA ExpList {funcParameterStack.top->push_back($1->type);};
 	
 
@@ -321,7 +326,7 @@ Exp 			:	LPAREN Exp RPAREN {$$= $2;}
 				|	STRING {$$ = new variableEntry("", "STRING");}
 				|	TRUE {$$ = new variableEntry("", "BOOL");}
 				|	FALSE {$$ = new variableEntry("", "BOOL");}
-				|	NOT Exp {$$ = dealWithBoolOutput("BOOL", $2);}
+				|	NOT Exp {$$ = dealwithBoolOutput("BOOL", $2);}
 				|	Exp AND Exp {$$ = dealwithBoolOutput("BOOL", $1, $3);}
 				|	Exp OR Exp {$$ = dealwithBoolOutput("BOOL", $1, $3);}
 				|	Exp EQUALITY Exp {$$ = dealwithBoolOutput("INT", $1, $3);}

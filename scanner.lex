@@ -2,12 +2,12 @@
 
 /* Declarations section */
 #include <stdio.h>
-#include "scope"
+#include "scopes.h"
 #include "parser.tab.hpp"
 #include "hw3_output.hpp"
 
 using namespace output;
-
+using namespace scopeTables;
 %}
 
 %option yylineno
