@@ -175,7 +175,8 @@ Statement		:	LBRACE {
 						offsets.top()++;
 					}
 				|	EnumType ID ASSIGN Exp SC {
-						if (!enumSearch(scopes, $1->name)) {
+						enumEntry* enum_entry = enumSearch(scopes, $1->name);
+						if (!enum_entry) {
 							errorUndefEnum(yylineno, $2->name);
 							exit(0);
 						}
@@ -183,7 +184,11 @@ Statement		:	LBRACE {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
-                        newVariable= variableEntry($2->name, $1->type, offsets.top())
+						else if ($3->type != "ENUM") {
+							errorUndefEnumValue(lineno, $2->name);
+							exit(0);
+						}
+                        newVariable = variableEntry($2->name, $1->type, offsets.top()) //TODO - add values
 						scopes.top()->insertVariable(newVariable);
 						offsets.top()++;
 					}
@@ -256,7 +261,7 @@ Statement		:	LBRACE {
 							exit(0);
 						}
 					};
-	
+						
 Call 			:	ID {
 						funcParameterStack.push(vector<string>());
 					} LPAREN ExpList RPAREN {
@@ -320,10 +325,15 @@ Exp 			:	LPAREN Exp RPAREN {$$= $2;}
 				|	Exp EQUALITY Exp {$$ = dealwithBoolOutput("INT", $1, $3);}
 				|	Exp RELATION Exp {$$ = dealwithBoolOutput("INT", $1, $3);}
 				|	LPAREN Type RPAREN Exp { 
-						if ($2->type != "INT" || $4->type != "ENUM") {
-							//todo what error for bad casing?
+						enumEntry* enum_entry = enumSearch(&scopes, $4->name) 
+						if (!enum_entry) {
+							errorUndefEnum(yylineno, $4->name);
+						} 
+						else if ($2->type != "INT") {
+							errorMismatch(yylineno); //TODO - is this the right error? s
 						}
-						//todo do the numbering thing mentioned in the rule
+						enum_entry.type.values()
+						$$ = new variableEntry("", "INT", 0, )
 					}; 
 %%
 
@@ -383,17 +393,18 @@ bool variableSearch(stack<Scope*> *scopes, string name) {
 	return res;
 }
 
-bool enumSearch(stack<Scope*> *scopes, string name) {
+enumEntry* enumSearch(stack<Scope*> *scopes, string name) {
 	if (scopes->empty()) {
-		return false;
+		return NULL;
 	}
-	else if (scopes->top()->getEnum(name)) {
-		return true;
+	enumEntry* entry = scopes->top()->getEnum(name); 
+	if (entry) {
+		return entry;
 	}
 
 	Scope* s = scopes->top();
 	scopes->pop();
-	bool res = enumSearch(scopes, name);
+	entry = enumSearch(scopes, name);
 	scopes->push(s);
 	return res;
 }
@@ -418,7 +429,7 @@ YYSTYPE dealwithBoolOutput(string check_for, YYSTYPE left,  YYSTYPE right= NULL)
 		errorMismatch(yylineno);
 		exit(0);
 	}
-	else if (left || right->type != check_for) {
+	else if (left && left->type != check_for) {
 		errorMismatch(yylineno);
 		exit(0);
 	}
