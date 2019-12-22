@@ -251,7 +251,7 @@ Statement		:	LBRACE {
 						}
 					} RPAREN {
 						addScope(scopes, offsets);
-						scope.top()->insideLoop = true;
+						scopes.top()->insideLoop = true;
 					} Statement {
 						removeScope(scopes, offsets);
 					}
@@ -460,7 +460,7 @@ bool similarParameters(const vector<string>& expected, const vector<string>& act
 
 int getEnumValue(const string<vector>& enumerations, const string& name) {
 	int val= 0;
-	string<vector>::const_iterator it;
+	vector<string>::const_iterator it;
 	for (it = enumerations.cbegin(); it != enumerations.cend(); ++it) {
 		if (*it == name) {
 			return val;
