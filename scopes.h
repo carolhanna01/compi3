@@ -1,3 +1,4 @@
+
 //
 // Created by Carol Hanna on 15/12/2019.
 //
@@ -14,11 +15,10 @@ using namespace output;
 
 #define INT_SIZE 1
 #define BOOL_SIZE 1
-#define startParamOffset = -1;
-#define YYSTYPE variableEntry*
+#define YYSTYPE scopeTables::variableEntry*
+
 
 namespace scopeTables{
-
     template <typename t>
         class entry {
             public:
@@ -26,7 +26,7 @@ namespace scopeTables{
             t type;
             int offset;
             int value;
-            entry(string name = "", t type = t(), int offset = 0, int value = 0):name(name), type(type), offset(offset), value(value){};
+            entry(string name="", t type= t(), int offset=0, int value=0):name(name), type(type), offset(offset), value(value){};
         };
 
         class functionType {
@@ -52,7 +52,7 @@ namespace scopeTables{
 
     typedef entry<string> variableEntry;
     typedef entry<functionType> functionEntry;
-    typedef entry<enumType> enumEntry; 
+    typedef entry<enumType> enumEntry;
 
     class Scope{
             public:
@@ -151,4 +151,6 @@ namespace scopeTables{
         offsets.pop();
     }
 
+
 }
+
