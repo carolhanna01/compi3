@@ -204,7 +204,7 @@ Statement		:	LBRACE {
 							exit(0);
 						}
 						else if (var->type != $3 ->type && (var->type != "INT" || $3->type != "BOOL")) {
-							errorMismatch(yylineno); //TODO check
+							errorMismatch(yylineno); 
 							exit(0);
 						}
 					}
@@ -248,7 +248,7 @@ Statement		:	LBRACE {
 						}
 					} RPAREN {
 						addScope(scopes, offsets);
-						scopes.top()->insideLoop = true;
+						scope.top()->insideLoop = true;
 					} Statement {
 						removeScope(scopes, offsets);
 					}
@@ -457,7 +457,7 @@ bool similarParameters(const vector<string>& expected, const vector<string>& act
 
 int getEnumValue(const string<vector>& enumerations, const string& name) {
 	int val= 0;
-	vector<string>::const_iterator it;
+	string<vector>::const_iterator it;
 	for (it = enumerations.cbegin(); it != enumerations.cend(); ++it) {
 		if (*it == name) {
 			return val;
