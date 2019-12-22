@@ -21,8 +21,8 @@
 	enumEntry newEnum = enumEntry();
 
 	YYSTYPE dealWithBinop(YYSTYPE left, YYSTYPE right);
-	YYSTYPE dealwithBoolOutput(YYSTYPE left,  YYSTYPE right, string check_for);
-	bool enumSearch(stack<Scope*> *scopes, string name);
+	YYSTYPE dealwithBoolOutput(string check_for, YYSTYPE left,  YYSTYPE right);
+    enumEntry* enumSearch(stack<Scope*> *scopes, string name);
 	bool variableSearch(stack<Scope*> *scopes, string name);
 	int yyerror(const char * message);
 
@@ -116,7 +116,7 @@ FormalDecl 		:	Type ID {
 					};
 
 EnumeratorList	:	Enumerator { enumType tmp = vector<string>(1, $1->name);
-                        $$ = new enumEntry("", tmp);}
+                        $$ = new enumEntry(tmp);}
 				|	EnumeratorList COMMA Enumerator { 
 						vector<string>& enumValues = $$->type.values;
 						if (std::find(enumValues.begin(), enumValues.end(), $2->name) != enumValues.end()) {
@@ -185,7 +185,7 @@ Statement		:	LBRACE {
 							exit(0);
 						}
 						else if ($3->type != "ENUM") {
-							errorUndefEnumValue(lineno, $2->name);
+							errorUndefEnumValue(yylineno, $2->name);
 							exit(0);
 						}
                         newVariable = variableEntry($2->name, $1->type, offsets.top()) //TODO - add values
@@ -270,7 +270,7 @@ Call 			:	ID {
 							errorUndefFunc(yylineno, $1->name);
 							exit(0);
 						} else if (!similarParameters(f->type.paramTypes, funcParameterStack.top())) {
-							errorPrototypeMismatch(lineno, $1->name, f->type.paramTypes);
+							errorPrototypeMismatch(yylineno, $1->name, f->type.paramTypes);
 							exit(0);
 						}
 						funcParameterStack.pop();
@@ -282,7 +282,7 @@ Call 			:	ID {
 							errorUndefFunc(yylineno, $1->name);
 							exit(0);
 						} else if (f->type.paramTypes.size() != 0) {
-							errorPrototypeMismatch(lineno, id, types);
+							errorPrototypeMismatch(yylineno, id, types);
 							exit(0);
 						}
 						$$ = new variableEntry("", f->type.returnType);
@@ -325,15 +325,15 @@ Exp 			:	LPAREN Exp RPAREN {$$= $2;}
 				|	Exp EQUALITY Exp {$$ = dealwithBoolOutput("INT", $1, $3);}
 				|	Exp RELATION Exp {$$ = dealwithBoolOutput("INT", $1, $3);}
 				|	LPAREN Type RPAREN Exp { 
-						enumEntry* enum_entry = enumSearch(&scopes, $4->name) 
+						enumEntry* enum_entry = enumSearch(&scopes, $4->name);
 						if (!enum_entry) {
 							errorUndefEnum(yylineno, $4->name);
 						} 
 						else if ($2->type != "INT") {
-							errorMismatch(yylineno); //TODO - is this the right error? s
+							errorMismatch(yylineno); //TODO - is this the right error?
 						}
-						enum_entry.type.values()
-						$$ = new variableEntry("", "INT", 0, )
+						enum_entry->type.values();
+						//$$ = new variableEntry("", "INT", 0, ) todo: finish this
 					}; 
 %%
 
@@ -406,7 +406,7 @@ enumEntry* enumSearch(stack<Scope*> *scopes, string name) {
 	scopes->pop();
 	entry = enumSearch(scopes, name);
 	scopes->push(s);
-	return res;
+	//return res; todo: remove this line?
 }
 
 bool similarParameters(const vector<string>& expected, const vector<string>& actual) {
