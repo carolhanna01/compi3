@@ -27,7 +27,6 @@
 	variableEntry* variableSearch(stack<Scope*> *scopes, string name);
 	bool similarParameters(const vector<string>& expected, const vector<string>& actual);
 	int yyerror(const char * message);
-	int funcParamOffset = -1;
 
 
 %}
@@ -111,13 +110,11 @@ FormalsList		:	FormalDecl
 	
 FormalDecl 		:	Type ID {
 						//TODO can var be func name?
-						newVariable = variableEntry($2->name, $1->type, paramOffset--);
-						scopes.top()->insertVariable(newVariable);
+						//scopes.top()->insertVariable($1->type, $2->name, /*todo offset*/0);
                         newFunction.type.addParam($1->type);
 					}
 				|	EnumType ID {
-						newVariable = variableEntry($2->name, $1->type, paramOffset--);
-						scopes.top()->insertVariable(newVariable);
+						//scopes.top()->insertVariable($1->type, $2->name, /*todo offset*/0);
 						newFunction.type.addParam($1->type);
 					};
 
@@ -191,7 +188,7 @@ Statement		:	LBRACE {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
-						else if ($4->type != "ENUM") { //TODO - make sure that EXP contains legal enum value
+						else if ($3->type != "ENUM") { //TODO - is this necessary? Can I insert numbers? Should i check if its valid string? Enumeration?
 							errorUndefEnumValue(yylineno, $2->name);
 							exit(0);
 						}
@@ -219,7 +216,7 @@ Statement		:	LBRACE {
 						}
 					}
 				|	RETURN Exp SC {
-						if (scopes.top()->currentFunc->returnType != $2->type && (tables.top()->currentFunc->returnType != "INT" || $2->type != "BYTE")){
+						if (scopes.top()->currentFunc->returnType != $2->type && (scopes.top()->currentFunc->returnType != "INT" || $2->type != "BYTE")){
 							errorMismatch(yylineno);
 							exit(0);
 						}
@@ -325,7 +322,7 @@ Exp 			:	LPAREN Exp RPAREN {$$= $2;}
 				|	STRING {$$ = new variableEntry("", "STRING");}
 				|	TRUE {$$ = new variableEntry("", "BOOL");}
 				|	FALSE {$$ = new variableEntry("", "BOOL");}
-				|	NOT Exp {$$ = dealWithBoolOutput("BOOL", $2);}
+				|	NOT Exp {$$ = dealwithBoolOutput("BOOL", $2);}
 				|	Exp AND Exp {$$ = dealwithBoolOutput("BOOL", $1, $3);}
 				|	Exp OR Exp {$$ = dealwithBoolOutput("BOOL", $1, $3);}
 				|	Exp EQUALITY Exp {$$ = dealwithBoolOutput("INT", $1, $3);}
@@ -406,7 +403,7 @@ variableEntry* variableSearch(stack<Scope*> *scopes, string name) {
 
 	Scope* s = scopes->top();
 	scopes->pop();
-	variableEntry* res = variableSearch(scopes, name);
+	variableEntry* res = variableSearch(&scopes, name);
 	scopes->push(s);
 	return res;
 }
@@ -422,7 +419,7 @@ enumEntry* enumSearch(stack<Scope*> *scopes, string name) {
 
 	Scope* s = scopes->top();
 	scopes->pop();
-	entry = enumSearch(scopes, name);
+	entry = enumSearch(&scopes, name);
 	scopes->push(s);
 	return entry;
 }
