@@ -69,13 +69,15 @@ namespace scopeTables{
             Scope(){
             variables = vector<variableEntry>();
             functions = vector<functionEntry>();
-            insideLoop =false;
+            insideLoop = false;
             currentFunc = nullptr;
             }
 
             variableEntry* getVariable(const string &name) {
+                // cout << "SEARCHING FOR " << name << endl;
                 for (variableEntry& v : variables) {
-                    if (name == v.name) {
+                    // cout << "COMPARING " << name << " WITH " << v.name << endl; 
+                    if (!name.compare(v.name)) {
                         return &v;
                     }
                 }
@@ -116,7 +118,7 @@ namespace scopeTables{
                     errorDef(yylineno, v.name);
                     exit(0);
                 }
-                variables.push_back(variableEntry(v.type, v.name, v.offset));
+                variables.push_back(variableEntry(v.name, v.type, v.offset));
             }
             void insertFunction(functionEntry f) {
                 if (getVariable(f.name) != nullptr) {

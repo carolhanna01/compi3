@@ -5,12 +5,6 @@
 	#include <algorithm>
 	#include "scopes.h"
 
-	/* DEBUG DECLERATION AREA */
-	using std::cout;
-	using std::cin;
-	using std::endl;
-
-
 	using namespace output;
 	using namespace scopeTables;
 
@@ -28,13 +22,19 @@
     enumEntry* enumSearch(stack<Scope*> *scopes, string name);
 	enumEntry* enumSearchWithEnumeration(stack<Scope*> *scopes, string enumeration);
 	bool similarParameters(const vector<string>& expected, const vector<string>& actual);
-	int yyerror(const char * message);
 	int getEnumValue(const vector<string>& enumerations, const string& name);
 	YYSTYPE dealWithBinop(YYSTYPE left, YYSTYPE right);
 	YYSTYPE dealwithBoolOutput(string check_for, YYSTYPE left,  YYSTYPE right = NULL);
 
 	void addScope (stack<Scope*>& scopes, stack<int>& offsets);
 	void removeScope (stack<Scope*>& scopes, stack<int>& offsets);
+
+
+	/* DEBUG DECLERATION AREA */
+	using std::cout;
+	using std::cin;
+	using std::endl;
+	void printScopes(stack<Scope*>* scopes);
 
 %}
 
@@ -207,8 +207,6 @@ Statement		:	LBRACE {
 						offsets.top()++;
 					}
 				|	ID ASSIGN Exp SC {
-						// cout << "HERE FOR VARIABLE" << $1->name << endl;
-						// scopes.top()->printVariables();
 						variableEntry* var = variableSearch(&scopes, $1->name);
 						if (!var) {
 							errorUndef(yylineno, $1->name);
@@ -330,6 +328,7 @@ Exp 			:	LPAREN Exp RPAREN {$$= $2;}
 						variableEntry* var = variableSearch(&scopes, $1->name);
 						if (!var) {
 							errorUndef(yylineno, $1->name);
+							exit(0);
 						}
 						$$ = new variableEntry(var->name, var->type, var->offset, var->value);
 					}  
@@ -412,6 +411,7 @@ variableEntry* variableSearch(stack<Scope*> *scopes, string name) {
 	if (scopes->empty()) {
 		return NULL;
 	}
+
 	variableEntry* entry = scopes->top()->getVariable(name);
 
 	if (entry) {
@@ -420,9 +420,9 @@ variableEntry* variableSearch(stack<Scope*> *scopes, string name) {
 
 	Scope* s = scopes->top();
 	scopes->pop();
-	variableEntry* res = variableSearch(scopes, name);
+	entry = variableSearch(scopes, name);
 	scopes->push(s);
-	return res;
+	return entry;
 }
 
 enumEntry* enumSearch(stack<Scope*> *scopes, string name) {
@@ -515,4 +515,17 @@ void removeScope (stack<Scope*>& scopes, stack<int>& offsets){
     scopes.top()->printEnums();
     scopes.pop();
     offsets.pop();
+}
+
+void printScopes(stack<Scope*>* scopes) {
+	if(scopes->empty()) {
+		return;
+	}
+	cout << "SCOPE -------------" << endl;
+	Scope* top = scopes->top();
+	top->printVariables();
+	cout << "SCOPE END ---------" << endl;
+	scopes->pop();
+	printScopes(scopes);
+	scopes->push(top);
 }
