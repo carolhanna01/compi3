@@ -86,11 +86,11 @@ FuncDecl		:	RetType ID {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
-						newFunction.name = $2->name;
-						newFunction.type.returnType = $1->type;
-						newFunction.type.paramTypes = vector<string>();
-						funcParamOffset = -1;
 						addScope(scopes, offsets);
+						scopes.top()->currentFunc->name = $2->name;
+						scopes.top()->currentFunc->type.returnType = $1->type;
+						scopes.top()->currentFunc->type.paramTypes = vector<string>();
+						funcParamOffset = -1;
 					} LPAREN Formals RPAREN LBRACE Statements RBRACE {
 						removeScope(scopes, offsets);
 						scopes.top()->insertFunction(newFunction);
@@ -222,13 +222,13 @@ Statement		:	LBRACE {
 					}
 				|	Call SC
 				|	RETURN SC {
-						if (scopes.top()->currentFunc->returnType != "VOID"){
+						if (scopes.top()->currentFunc->type.returnType != "VOID"){
 							errorMismatch(yylineno);
 							exit(0);
 						}
 					}
 				|	RETURN Exp SC {
-						if (scopes.top()->currentFunc->returnType != $2->type && (scopes.top()->currentFunc->returnType != "INT" || $2->type != "BYTE")){
+						if (scopes.top()->currentFunc->type.returnType != $2->type && (scopes.top()->currentFunc->type.returnType != "INT" || $2->type != "BYTE")){
 							errorMismatch(yylineno);
 							exit(0);
 						}

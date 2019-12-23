@@ -62,7 +62,7 @@ namespace scopeTables{
             vector<functionEntry > functions;
             vector<enumEntry> enums;
             bool insideLoop;
-            functionType* currentFunc;
+            functionEntry* currentFunc;
 
 
             // Constructor
@@ -70,7 +70,7 @@ namespace scopeTables{
             variables = vector<variableEntry>();
             functions = vector<functionEntry>();
             insideLoop = false;
-            currentFunc = nullptr;
+            currentFunc = new functionEntry();
             }
 
             variableEntry* getVariable(const string &name) {
