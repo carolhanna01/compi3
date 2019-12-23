@@ -5,6 +5,12 @@
 	#include <algorithm>
 	#include "scopes.h"
 
+	/* DEBUG DECLERATION AREA */
+	using std::cout;
+	using std::cin;
+	using std::endl;
+
+
 	using namespace output;
 	using namespace scopeTables;
 
@@ -110,12 +116,14 @@ FormalsList		:	FormalDecl
 				|	FormalDecl COMMA FormalsList;
 	
 FormalDecl 		:	Type ID {
-						//TODO can var be func name?
-						//scopes.top()->insertVariable($1->type, $2->name, /*todo offset*/0);
+						//TODO can var be func name?'
+                        newVariable = variableEntry($2->name, $1->type,  /*todo offset*/0);
+						scopes.top()->insertVariable(newVariable);
                         newFunction.type.addParam($1->type);
 					}
 				|	EnumType ID {
-						//scopes.top()->insertVariable($1->type, $2->name, /*todo offset*/0);
+						newVariable = variableEntry($2->name, $1->type,  /*todo offset*/0);
+						scopes.top()->insertVariable(newVariable);
 						newFunction.type.addParam($1->type);
 					};
 
@@ -199,6 +207,8 @@ Statement		:	LBRACE {
 						offsets.top()++;
 					}
 				|	ID ASSIGN Exp SC {
+						// cout << "HERE FOR VARIABLE" << $1->name << endl;
+						// scopes.top()->printVariables();
 						variableEntry* var = variableSearch(&scopes, $1->name);
 						if (!var) {
 							errorUndef(yylineno, $1->name);
@@ -297,8 +307,12 @@ Call 			:	ID {
 						$$ = new variableEntry("", f->type.returnType);
 					};
 
-ExpList 		:	Exp {funcParameterStack.top().push_back($1->type);}
-				|	Exp COMMA ExpList {funcParameterStack.top().push_back($1->type);};
+ExpList 		:	Exp {
+						funcParameterStack.top().push_back($1->type);
+					}
+				|	Exp COMMA ExpList {
+						funcParameterStack.top().push_back($1->type);
+					};
 
 Type 			:	INT{$$ = new variableEntry("", "INT");}
 				|	BYTE{$$ = new variableEntry("", "BYTE");}
@@ -389,9 +403,7 @@ main(){
 	}
 }
 
-int yyerror(const char * message)
-{
-	extern int yylineno;
+int yyerror(const char * message) {
 	errorSyn(yylineno);
 	exit(0);
 }
