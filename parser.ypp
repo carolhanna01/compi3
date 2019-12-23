@@ -101,10 +101,11 @@ Enums			:	/*epsilon*/{};
 				|	EnumDecl Enums {};
 
 EnumDecl		:	ENUM ID {
-						if (enumSearch(&scopes, $2->name)) {
+						if (enumSearch(&scopes, $2->name) || variableSearch(&scopes, $2->name)) {
 							errorDef(yylineno, $2->name);
 							exit(0);
-						}	
+						}
+						newEnum.name = $2->name;
 					} LBRACE EnumeratorList RBRACE SC {
 						newEnum.name = $2->name;
 						scopes.top()->insertEnum(newEnum);
@@ -132,8 +133,11 @@ FormalDecl 		:	Type ID {
 						scopes.top()->currentFunc->type.addParam($1->type);
 					};
 
-EnumeratorList	:	Enumerator { 
-						newEnum.name = "";
+EnumeratorList	:	Enumerator {
+                    if (variableSearch(&scopes, $1->name) || enumSearch(&scopes, $1->name) || newEnum.name == $1->name) {
+                        errorDef(yylineno, $1->name);
+                        exit(0);
+                     }
 						newEnum.type.values = vector<string>(1, $1->name);
                     }
 				|	EnumeratorList COMMA Enumerator { 
@@ -145,7 +149,7 @@ EnumeratorList	:	Enumerator {
 						enum_values.push_back($3->name);
 					};		
 
-Enumerator		:	ID;
+Enumerator		:	ID
 	
 Statements		:	Statement
 				|	Statements Statement;
@@ -156,7 +160,7 @@ Statement		:	LBRACE {
 						removeScope(scopes, offsets);
 					} RBRACE
 				|	Type ID SC {
-						if (variableSearch(&scopes, $2->name)) {
+						if (variableSearch(&scopes, $2->name) || enumSearch(&scopes, $2->name)) {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
@@ -165,11 +169,11 @@ Statement		:	LBRACE {
 						offsets.top()++;
 					}
 				|	EnumType ID SC {
-						if (!enumSearch(&scopes, $1->name)) {
+						if (enumSearch(&scopes, $1->name)) {
 							errorUndefEnum(yylineno, $2->name);
 							exit(0);
 						}
-						else if (variableSearch(&scopes, $2->name)) {
+						else if (variableSearch(&scopes, $2->name)) { //todo: check enum iden in all enum vecs
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
