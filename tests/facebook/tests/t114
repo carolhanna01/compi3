@@ -1,5 +1,5 @@
 ---end scope---
-c ENUM 0
+c enum C 0
 ---end scope---
 ---end scope---
 enum A {a1,a2,a3}

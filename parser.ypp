@@ -30,7 +30,7 @@
 	bool isInVector(vector<string> vec, string str);
 	void addScope (stack<Scope*>& scopes, stack<int>& offsets);
 	void removeScope (stack<Scope*>& scopes, stack<int>& offsets);
-
+	bool isInString(string target, string search); 
 
 	/* DEBUG DECLERATION AREA */
 	using std::cout;
@@ -105,7 +105,6 @@ EnumDecl		:	ENUM ID {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
-						newEnum.name = $2->name;
 					} LBRACE EnumeratorList RBRACE SC {
 						newEnum.name = $2->name;
 						scopes.top()->insertEnum(newEnum);
@@ -128,7 +127,7 @@ FormalDecl 		:	Type ID {
 
 					}
 				|	EnumType ID {
-						newVariable = variableEntry($2->name, $1->type,  /*todo offset*/0);
+						newVariable = variableEntry($2->name, $1->type, funcParamOffset--);
 						scopes.top()->insertVariable(newVariable);
 						scopes.top()->currentFunc->type.addParam($1->type);
 					};
@@ -177,7 +176,7 @@ Statement		:	LBRACE {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
-                        newVariable= variableEntry($2->name, $1->type, offsets.top());
+                        newVariable = variableEntry($2->name, $1->type, offsets.top());
 						scopes.top()->insertVariable(newVariable);
 						offsets.top()++;
 					}
@@ -192,7 +191,7 @@ Statement		:	LBRACE {
 							errorMismatch(yylineno); //TODO check
 							exit(0);
 						}
-                        newVariable= variableEntry($2->name, $1->type, offsets.top());
+                        newVariable = variableEntry($2->name, $1->type, offsets.top());
 						scopes.top()->insertVariable(newVariable);
 						offsets.top()++;
 					}
@@ -202,11 +201,11 @@ Statement		:	LBRACE {
 							errorUndefEnum(yylineno, $2->name);
 							exit(0);
 						}
-						else if (variableSearch(&scopes, $2->name)) {
+						else if (variableSearch(&scopes, $2->name) || enumIdentifierSearch(&scopes, $2->name)) {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
-						else if ($3->type != "ENUM") { //TODO - is this necessary? Can I insert numbers? Should i check if its valid string? Enumeration?
+						else if (isInString($4->type, "enum")) { //TODO - is this necessary? Can I insert numbers? Should i check if its valid string? Enumeration?
 							errorUndefEnumValue(yylineno, $2->name);
 							exit(0);
 						}
@@ -302,7 +301,7 @@ Type 			:	INT{$$ = new variableEntry("", "INT");}
 							//todo: add errorCheck for byte value (need to add field to entry?)}
 				|	BOOL{$$ = new variableEntry("", "BOOL");};
 	
-EnumType 		:	ENUM ID {$$ = new variableEntry("", "ENUM");};
+EnumType 		:	ENUM ID {$$ = new variableEntry("", "enum " + $2->name);};
 	
 Exp 			:	LPAREN Exp RPAREN {$$= $2;}
 				|	Exp MUL Exp {$$ = dealWithBinop($1, $2);}
@@ -339,7 +338,7 @@ Exp 			:	LPAREN Exp RPAREN {$$= $2;}
 
 						variableEntry* var = variableSearch(&scopes, $4->name); //TODO - below assumes a variable cant have an enum name. True?
 						enumEntry* enum_entry = enumIdentifierSearch(&scopes, $4->name); //TODO - make sure i cant insert same enum values for more than one enum.
-						if (var && var->type == "ENUM") { // CONVERSION IS FROM VARIABLE
+						if (var && isInString(var->type, "enum")) { // CONVERSION IS FROM VARIABLE
 							$$ = new variableEntry("", "INT", 0, var->value);
 						}
 						else if (enum_entry) { //CONVERSION IS FROM AN ENUMERATION STRING
@@ -569,4 +568,8 @@ void printScopes(stack<Scope*>* scopes) {
 	cout << "------------------------------------------------------------" << endl;
 	printScopesAux(scopes);
 	cout << "------------------------------------------------------------" << endl << endl;
+}
+
+bool isInString(string target, string search) {
+	return (target.find(search) != string::npos);
 }
