@@ -19,6 +19,7 @@
 	enumEntry newEnum = enumEntry();
 	int funcParamOffset = -1;
 
+    bool insideWhileLoop(stack<Scope*>* scopes);
     enumEntry* enumIdentifierSearch(stack<Scope*> *scopes, string name);
 	variableEntry* variableSearch(stack<Scope*> *scopes, string name);
 	functionEntry* functionSearch(stack<Scope*> *scopes, string name);
@@ -106,7 +107,6 @@ EnumDecl		:	ENUM ID {
 							exit(0);
 						}
 					} LBRACE EnumeratorList RBRACE SC {
-						newEnum.name = $2->name;
 						scopes.top()->insertEnum(newEnum);
 					};
 	
@@ -141,7 +141,7 @@ EnumeratorList	:	Enumerator {
                     }
 				|	EnumeratorList COMMA Enumerator { 
 						vector<string>& enum_values = newEnum.type.values;
-						if (isInVector(enum_values, $3->name )) {
+						if (isInVector(enum_values, $3->name ) || enumIdentifierSearch(&scopes, $3->name)) {
 							errorDef(yylineno, $3->name);
 							exit(0);
 						}
@@ -159,7 +159,7 @@ Statement		:	LBRACE {
 						removeScope(scopes, offsets);
 					} RBRACE
 				|	Type ID SC {
-						if (variableSearch(&scopes, $2->name) || enumSearch(&scopes, $2->name)) {
+						if (variableSearch(&scopes, $2->name) || enumSearch(&scopes, $2->name) || enumIdentifierSearch(&scopes, $2->name) ) {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
@@ -168,11 +168,7 @@ Statement		:	LBRACE {
 						offsets.top()++;
 					}
 				|	EnumType ID SC {
-						if (enumSearch(&scopes, $1->name)) {
-							errorUndefEnum(yylineno, $2->name);
-							exit(0);
-						}
-						else if (variableSearch(&scopes, $2->name) || enumIdentifierSearch(&scopes, $2->name)) { //todo: check enum iden in all enum vecs
+						if (enumSearch(&scopes, $1->name) || variableSearch(&scopes, $2->name) || enumIdentifierSearch(&scopes, $2->name)) { //todo: check enum iden in all enum vecs
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
@@ -183,7 +179,7 @@ Statement		:	LBRACE {
 
 				|	EnumDecl
 				|	Type ID ASSIGN Exp SC {  // TODO - check if all Exp result in adding to scope as requested.
-						if (variableSearch(&scopes, $2->name)) {
+						if (variableSearch(&scopes, $2->name) || functionSearch(&scopes, $2->name)) {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
@@ -205,7 +201,7 @@ Statement		:	LBRACE {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
-						else if (isInString($4->type, "enum")) { //TODO - is this necessary? Can I insert numbers? Should i check if its valid string? Enumeration?
+						else if (isInString($4->type, "enum")) {
 							errorUndefEnumValue(yylineno, $2->name);
 							exit(0);
 						}
@@ -250,16 +246,17 @@ Statement		:	LBRACE {
 						scopes.top()->insideLoop = true;
 					} Statement {
 						removeScope(scopes, offsets);
+
 					}
 				|	BREAK SC {
-						if(scopes.top()->insideLoop == false){
+						if(!insideWhileLoop(&scopes)){
 							errorUnexpectedBreak(yylineno);
 							exit(0);
 						}
 					}
 					
 				|	CONTINUE SC {
-						if(scopes.top()->insideLoop == false){
+						if(!insideWhileLoop(&scopes)){
 							errorUnexpectedContinue(yylineno);
 							exit(0);
 						}
@@ -562,6 +559,20 @@ void printScopesAux(stack<Scope*>* scopes) {
 	scopes->pop();
 	printScopesAux(scopes);
 	scopes->push(top);
+}
+
+bool insideWhileLoop(stack<Scope*>* scopes){
+	if (scopes->empty()) {
+		return false;
+	}
+    if(scopes->top()->insideLoop)
+        return true;
+
+	Scope* s = scopes->top();
+	scopes->pop();
+	bool res = insideWhileLoop(scopes);
+	scopes->push(s);
+	return res;
 }
 
 void printScopes(stack<Scope*>* scopes) {

@@ -63,6 +63,7 @@ namespace scopeTables{
             vector<enumEntry> enums;
             bool insideLoop;
             functionEntry* currentFunc;
+            Scope* parent;
 
 
             // Constructor
