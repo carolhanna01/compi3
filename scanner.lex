@@ -8,6 +8,10 @@
 
 using namespace output;
 using namespace scopeTables;
+using namespace std; //todo - removes
+extern stack<Scope*> scopes;  //todo --remove 
+extern void printScopes(stack<Scope*>* scopes); //todo -remove
+
 %}
 
 %option yylineno
@@ -26,6 +30,8 @@ equality		((==)|(!=))
 
 %%
 
+STA#								{ printScopes(&scopes); } //todo - remove
+P#									{ cout << "@#$ DETECTOR @#$" << endl; } //todo - remove
 void								return VOID;
 int 								return INT;
 byte 								return BYTE;

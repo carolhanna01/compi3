@@ -15,12 +15,12 @@
 	stack<Scope*> scopes;
 	stack<int> offsets;
 	stack<vector<string>> funcParameterStack;
-	functionEntry newFunction = functionEntry();
 	variableEntry newVariable = variableEntry();
 	enumEntry newEnum = enumEntry();
 	int funcParamOffset = -1;
 
 	variableEntry* variableSearch(stack<Scope*> *scopes, string name);
+	functionEntry* functionSearch(stack<Scope*> *scopes, string name);
     enumEntry* enumSearch(stack<Scope*> *scopes, string name);
 	enumEntry* enumSearchWithEnumeration(stack<Scope*> *scopes, string enumeration);
 	bool similarParameters(const vector<string>& expected, const vector<string>& actual);
@@ -37,7 +37,7 @@
 	using std::cin;
 	using std::endl;
 	void printScopes(stack<Scope*>* scopes);
-
+	// TODO - go to lexer and remove STAN thing.
 %}
 
 %token	  VOID
@@ -92,8 +92,9 @@ FuncDecl		:	RetType ID {
 						scopes.top()->currentFunc->type.paramTypes = vector<string>();
 						funcParamOffset = -1;
 					} LPAREN Formals RPAREN LBRACE Statements RBRACE {
+						functionEntry new_function(*(scopes.top()->currentFunc));
 						removeScope(scopes, offsets);
-						scopes.top()->insertFunction(*scopes.top()->currentFunc);
+						scopes.top()->insertFunction(new_function);
 					};
 
 Enums			:	/*epsilon*/{};
@@ -123,6 +124,7 @@ FormalDecl 		:	Type ID {
                         newVariable = variableEntry($2->name, $1->type,  funcParamOffset--);
 						scopes.top()->insertVariable(newVariable);
                         scopes.top()->currentFunc->type.addParam($1->type);
+
 					}
 				|	EnumType ID {
 						newVariable = variableEntry($2->name, $1->type,  /*todo offset*/0);
@@ -261,7 +263,7 @@ Statement		:	LBRACE {
 					};
 
 Call 			:	ID LPAREN {funcParameterStack.push(vector<string>());} ExpList RPAREN {
-						functionEntry* f = scopes.top()->getFunction($1->name);
+						functionEntry* f = functionSearch(&scopes, $1->name);
 						if(!f) {
 							errorUndefFunc(yylineno, $1->name);
 							exit(0);
@@ -273,7 +275,7 @@ Call 			:	ID LPAREN {funcParameterStack.push(vector<string>());} ExpList RPAREN 
 						$$ = new variableEntry("", f->type.returnType);
 					}
 				|	ID LPAREN RPAREN {
-						functionEntry* f = scopes.top()->getFunction($1->name);
+						functionEntry* f = functionSearch(&scopes, $1->name);
 						if(!f) {
 							errorUndefFunc(yylineno, $1->name);
 							exit(0);
@@ -304,6 +306,7 @@ Exp 			:	LPAREN Exp RPAREN {$$= $2;}
 				|	Exp ADD Exp {$$ = dealWithBinop($1, $2);}
 				|	Exp SUB Exp {$$ = dealWithBinop($1, $2);}
 				|	ID { 
+
 						variableEntry* var = variableSearch(&scopes, $1->name);
 						if (!var) {
 							errorUndef(yylineno, $1->name);
@@ -343,7 +346,6 @@ Exp 			:	LPAREN Exp RPAREN {$$= $2;}
 							errorMismatch(yylineno); 
 							exit(0);
 						}						
-
 					};
 
 
@@ -414,7 +416,6 @@ variableEntry* variableSearch(stack<Scope*> *scopes, string name) {
 	}
 
 	variableEntry* entry = scopes->top()->getVariable(name);
-
 	if (entry) {
 		return entry;
 	}
@@ -422,6 +423,23 @@ variableEntry* variableSearch(stack<Scope*> *scopes, string name) {
 	Scope* s = scopes->top();
 	scopes->pop();
 	entry = variableSearch(scopes, name);
+	scopes->push(s);
+	return entry;
+}
+
+functionEntry* functionSearch(stack<Scope*> *scopes, string name) {
+	if (scopes->empty()) {
+		return NULL;
+	}
+
+	functionEntry* entry = scopes->top()->getFunction(name);
+	if (entry) {
+		return entry;
+	}
+
+	Scope* s = scopes->top();
+	scopes->pop();
+	entry = functionSearch(scopes, name);
 	scopes->push(s);
 	return entry;
 }
@@ -510,7 +528,7 @@ bool isInVector(vector<string> vec, string str) {
 }
 
 void addScope (stack<Scope*>& scopes, stack<int>& offsets){
-    scopes.push(new Scope(*scopes.top()));
+    scopes.push(new Scope());
     offsets.push(offsets.top());
 }
 
@@ -522,15 +540,24 @@ void removeScope (stack<Scope*>& scopes, stack<int>& offsets){
     offsets.pop();
 }
 
-void printScopes(stack<Scope*>* scopes) {
+void printScopesAux(stack<Scope*>* scopes) {
 	if(scopes->empty()) {
 		return;
 	}
 	cout << "SCOPE -------------" << endl;
 	Scope* top = scopes->top();
+	cout << "\tVars:" << endl;
 	top->printVariables();
+	cout << "\tFuncs:" << endl;
+	top->printFunctions();
 	cout << "SCOPE END ---------" << endl;
 	scopes->pop();
-	printScopes(scopes);
+	printScopesAux(scopes);
 	scopes->push(top);
+}
+
+void printScopes(stack<Scope*>* scopes) {
+	cout << "------------------------------------------------------------" << endl;
+	printScopesAux(scopes);
+	cout << "------------------------------------------------------------" << endl << endl;
 }
