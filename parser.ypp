@@ -19,10 +19,10 @@
 	enumEntry newEnum = enumEntry();
 	int funcParamOffset = -1;
 
+    enumEntry* enumIdentifierSearch(stack<Scope*> *scopes, string name);
 	variableEntry* variableSearch(stack<Scope*> *scopes, string name);
 	functionEntry* functionSearch(stack<Scope*> *scopes, string name);
     enumEntry* enumSearch(stack<Scope*> *scopes, string name);
-	enumEntry* enumSearchWithEnumeration(stack<Scope*> *scopes, string enumeration);
 	bool similarParameters(const vector<string>& expected, const vector<string>& actual);
 	int getEnumValue(const vector<string>& enumerations, const string& name);
 	YYSTYPE dealWithBinop(YYSTYPE left, YYSTYPE right);
@@ -142,7 +142,7 @@ EnumeratorList	:	Enumerator {
                     }
 				|	EnumeratorList COMMA Enumerator { 
 						vector<string>& enum_values = newEnum.type.values;
-						if (isInVector(enum_values, $3->name)) {
+						if (isInVector(enum_values, $3->name )) {
 							errorDef(yylineno, $3->name);
 							exit(0);
 						}
@@ -173,7 +173,7 @@ Statement		:	LBRACE {
 							errorUndefEnum(yylineno, $2->name);
 							exit(0);
 						}
-						else if (variableSearch(&scopes, $2->name)) { //todo: check enum iden in all enum vecs
+						else if (variableSearch(&scopes, $2->name) || enumIdentifierSearch(&scopes, $2->name)) { //todo: check enum iden in all enum vecs
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
@@ -338,7 +338,7 @@ Exp 			:	LPAREN Exp RPAREN {$$= $2;}
 						} //TODO - make sure all enum assignments get requested value.
 
 						variableEntry* var = variableSearch(&scopes, $4->name); //TODO - below assumes a variable cant have an enum name. True?
-						enumEntry* enum_entry = enumSearchWithEnumeration(&scopes, $4->name); //TODO - make sure i cant insert same enum values for more than one enum.
+						enumEntry* enum_entry = enumIdentifierSearch(&scopes, $4->name); //TODO - make sure i cant insert same enum values for more than one enum.
 						if (var && var->type == "ENUM") { // CONVERSION IS FROM VARIABLE
 							$$ = new variableEntry("", "INT", 0, var->value);
 						}
@@ -464,21 +464,26 @@ enumEntry* enumSearch(stack<Scope*> *scopes, string name) {
 	return entry;
 }
 
-enumEntry* enumSearchWithEnumeration(stack<Scope*> *scopes, string enumeration) {
+enumEntry* enumIdentifierSearch(stack<Scope*> *scopes, string name) {
 	if (scopes->empty()) {
 		return NULL;
 	}
-	enumEntry* entry = scopes->top()->getEnumWithEnumeration(enumeration); 
-	if (entry) {
-		return entry;
+	vector<enumEntry> currEnums = scopes->top()->enums;
+	for(enumEntry& e: currEnums){
+	    vector<string> currValues = e.type.values;
+	    for(string& s : currValues){
+	        if(s == name)
+	            return &e;
+	    }
 	}
 
 	Scope* s = scopes->top();
 	scopes->pop();
-	entry = enumSearch(scopes, enumeration);
+	enumEntry* entry = enumIdentifierSearch(scopes, name);
 	scopes->push(s);
-	return entry; 
+	return entry;
 }
+
 
 bool similarParameters(const vector<string>& expected, const vector<string>& actual) {
 	if (expected.size() != actual.size()) {
