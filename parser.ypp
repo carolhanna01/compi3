@@ -43,30 +43,30 @@
 %token    BYTE
 %token    B
 %token    BOOL
-%token    RETURN 
-%token    WHILE 
-%token    BREAK 
-%token    CONTINUE 
+%token    RETURN
+%token    WHILE
+%token    BREAK
+%token    CONTINUE
 %token    SC
 %token	  ENUM
-%token    COMMA 
-%token    LBRACE 
-%token    RBRACE 
-%token    ID 
-%token    NUM 
-%token    STRING 
-%right    ASSIGN 
-%left	  OR 
+%token    COMMA
+%token    LBRACE
+%token    RBRACE
+%token    NUM
+%token    STRING
+%right    ASSIGN
+%left	  OR
 %left     AND
 %left	  EQUALITY
 %nonassoc RELATION
 %left	  ADD SUB
 %left     MUL DIV
-%right    NOT 
-%left	  LPAREN RPAREN 
-%nonassoc IF 
+%right    NOT
+%right	  LPAREN RPAREN
+%right ID
+%nonassoc IF
 %nonassoc ELSE
-%left TRUE FALSE 
+%left TRUE FALSE
 
 /*
 	Doneth list - 1, 2, 3, 4, 11, 12, 13
@@ -232,30 +232,8 @@ Statement		:	LBRACE {
 							exit(0);
 						}
 					}
-				|	IF LPAREN Exp {
-						if ($3->type != "BOOL") {
-							errorMismatch(yylineno);
-							exit(0);
-						}
-					} RPAREN {
-						addScope(scopes, offsets);
-					} Statement {
-						removeScope(scopes, offsets);
-					} ELSE {
-						addScope(scopes, offsets);
-					} Statement {
-						removeScope(scopes, offsets);
-					}
-				|	IF LPAREN Exp {
-						if ($3->type != "BOOL") {
-							errorMismatch(yylineno);
-							exit(0);
-						}
-					} RPAREN {
-						addScope(scopes, offsets);
-					} Statement {
-						removeScope(scopes, offsets);
-					}
+				|	IF LPAREN CHECK_IF_BOOL RPAREN ADD_SCOPE Statement REMOVE_SCOPE ELSE ADD_SCOPE Statement REMOVE_SCOPE
+				|	IF LPAREN CHECK_IF_BOOL RPAREN ADD_SCOPE Statement REMOVE_SCOPE
 				|	WHILE LPAREN Exp {
 						if ($3->type != "BOOL") {
 							errorMismatch(yylineno);
@@ -280,10 +258,8 @@ Statement		:	LBRACE {
 							exit(0);
 						}
 					};
-						
-Call 			:	ID {
-						funcParameterStack.push(vector<string>());
-					} LPAREN ExpList RPAREN {
+
+Call 			:	ID LPAREN {funcParameterStack.push(vector<string>());} ExpList RPAREN {
 						functionEntry* f = scopes.top()->getFunction($1->name);
 						if(!f) {
 							errorUndefFunc(yylineno, $1->name);
@@ -366,7 +342,23 @@ Exp 			:	LPAREN Exp RPAREN {$$= $2;}
 							exit(0);
 						}						
 
-					}; 
+					};
+
+
+ADD_SCOPE : {
+	addScope(scopes, offsets);
+};
+
+REMOVE_SCOPE : {
+	removeScope(scopes, offsets);
+};
+
+CHECK_IF_BOOL :      Exp {
+                        if ($1->type != "BOOL") {
+                              errorMismatch(yylineno);
+                               exit(0);
+                           }
+                        };
 %%
 
 main(){
