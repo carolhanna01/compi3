@@ -10,6 +10,8 @@
 
 	extern int yylex();
 	int yyerror(const char * message);
+	typedef vector<string> vecstr;
+
 
 	stack<Scope*> scopes;
 	stack<int> offsets;
@@ -24,8 +26,8 @@
 	bool similarParameters(const vector<string>& expected, const vector<string>& actual);
 	int getEnumValue(const vector<string>& enumerations, const string& name);
 	YYSTYPE dealWithBinop(YYSTYPE left, YYSTYPE right);
-	YYSTYPE dealwithBoolOutput(string check_for, YYSTYPE left,  YYSTYPE right = NULL);
-
+	YYSTYPE dealwithBoolOutput(vector<string> check_for, YYSTYPE left,  YYSTYPE right = NULL);
+	bool isInVector(vector<string> vec, string str);
 	void addScope (stack<Scope*>& scopes, stack<int>& offsets);
 	void removeScope (stack<Scope*>& scopes, stack<int>& offsets);
 
@@ -133,7 +135,7 @@ EnumeratorList	:	Enumerator {
                     }
 				|	EnumeratorList COMMA Enumerator { 
 						vector<string>& enum_values = newEnum.type.values;
-						if (std::find(enum_values.begin(), enum_values.end(), $3->name) != enum_values.end()) {
+						if (isInVector(enum_values, $3->name)) {
 							errorDef(yylineno, $3->name);
 							exit(0);
 						}
@@ -202,7 +204,6 @@ Statement		:	LBRACE {
 							exit(0);
 						}
                         newVariable = variableEntry($2->name, $1->type, offsets.top(), $3->value);
-
 						scopes.top()->insertVariable(newVariable);
 						offsets.top()++;
 					}
@@ -316,11 +317,11 @@ Exp 			:	LPAREN Exp RPAREN {$$= $2;}
 				|	STRING {$$ = new variableEntry("", "STRING");}
 				|	TRUE {$$ = new variableEntry("", "BOOL");}
 				|	FALSE {$$ = new variableEntry("", "BOOL");}
-				|	NOT Exp {$$ = dealwithBoolOutput("BOOL", $2);}
-				|	Exp AND Exp {$$ = dealwithBoolOutput("BOOL", $1, $3);}
-				|	Exp OR Exp {$$ = dealwithBoolOutput("BOOL", $1, $3);}
-				|	Exp EQUALITY Exp {$$ = dealwithBoolOutput("INT", $1, $3);}
-				|	Exp RELATION Exp {$$ = dealwithBoolOutput("INT", $1, $3);}
+				|	NOT Exp {$$ = dealwithBoolOutput(vecstr{"BOOL"}, $2);}
+				|	Exp AND Exp {$$ = dealwithBoolOutput(vecstr{"BOOL"}, $1, $3);}
+				|	Exp OR Exp {$$ = dealwithBoolOutput(vecstr{"BOOL"}, $1, $3);}
+				|	Exp EQUALITY Exp {$$ = dealwithBoolOutput(vecstr{"BYTE","INT"}, $1, $3);}
+				|	Exp RELATION Exp {$$ = dealwithBoolOutput(vecstr{"BYTE","INT"}, $1, $3);}
 				|	LPAREN Type RPAREN Exp { 
 						if ($2->type != "INT") { // CONVERSION IS NOT TO INT
 							errorMismatch(yylineno); //TODO - is this the right error?
@@ -340,24 +341,23 @@ Exp 			:	LPAREN Exp RPAREN {$$= $2;}
 							errorMismatch(yylineno); 
 							exit(0);
 						}						
-
 					};
 
 
-ADD_SCOPE : {
-	addScope(scopes, offsets);
-};
+ADD_SCOPE 			: 	{
+						addScope(scopes, offsets);
+					};
 
-REMOVE_SCOPE : {
-	removeScope(scopes, offsets);
-};
+REMOVE_SCOPE		: 	{
+						removeScope(scopes, offsets);
+					};
 
-CHECK_IF_BOOL :      Exp {
+CHECK_IF_BOOL 		:	Exp {
                         if ($1->type != "BOOL") {
-                              errorMismatch(yylineno);
-                               exit(0);
-                           }
-                        };
+                            errorMismatch(yylineno);
+                            exit(0);
+                 	   }
+                 	};
 %%
 
 main(){
@@ -475,12 +475,12 @@ int getEnumValue(const vector<string>& enumerations, const string& name) {
 	}
 }
 
-YYSTYPE dealwithBoolOutput(string check_for, YYSTYPE left, YYSTYPE right) {
-	if (right && right->type != check_for) {
+YYSTYPE dealwithBoolOutput(vector<string> check_for, YYSTYPE left, YYSTYPE right) {
+	if (right && !isInVector(check_for, right->type)) {
 		errorMismatch(yylineno);
 		exit(0);
 	}
-	else if (left && left->type != check_for) {
+	else if (left && !isInVector(check_for, left->type)) {
 		errorMismatch(yylineno);
 		exit(0);
 	}
@@ -494,6 +494,10 @@ YYSTYPE dealWithBinop(YYSTYPE left, YYSTYPE right) {
 	}
 	string type = left->type == "BYTE" && right->type == "BYTE" ? "BYTE" : "INT";
 	return new variableEntry("", type);
+}
+
+bool isInVector(vector<string> vec, string str) {
+	return find(vec.begin(), vec.end(), str) != vec.end();
 }
 
 void addScope (stack<Scope*>& scopes, stack<int>& offsets){
@@ -521,3 +525,4 @@ void printScopes(stack<Scope*>* scopes) {
 	printScopes(scopes);
 	scopes->push(top);
 }
+
