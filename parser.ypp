@@ -83,7 +83,7 @@ Funcs			:	/*epsilon*/
 				|	FuncDecl Funcs;	
 			
 FuncDecl		:	RetType ID {
-						if (scopes.top()->getVariable($2->name)) {
+						if (scopes.top()->getVariable($2->name) || scopes.top()->getFunction($2->name)) {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
@@ -120,6 +120,10 @@ FormalsList		:	FormalDecl
 				|	FormalDecl COMMA FormalsList;
 	
 FormalDecl 		:	Type ID {
+                        if (variableSearch(&scopes, $1->name) || enumSearch(&scopes, $1->name) || functionSearch(&scopes, $1->name)){
+                            errorDef(yylineno, $2->name);
+                            exit(0);
+                        }
 						//TODO can var be func name?'
                         newVariable = variableEntry($2->name, $1->type,  funcParamOffset--);
 						scopes.top()->insertVariable(newVariable);
@@ -159,7 +163,7 @@ Statement		:	LBRACE {
 						removeScope(scopes, offsets);
 					} RBRACE
 				|	Type ID SC {
-						if (variableSearch(&scopes, $2->name) || enumSearch(&scopes, $2->name) || enumIdentifierSearch(&scopes, $2->name) ) {
+						if (variableSearch(&scopes, $2->name) || functionSearch(&scopes, $2->name) || enumSearch(&scopes, $2->name) || enumIdentifierSearch(&scopes, $2->name)) {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
@@ -183,8 +187,8 @@ Statement		:	LBRACE {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
-						else if ($1->type != $4 ->type && ($1->type != "INT" || $4->type != "BOOL")) {
-							errorMismatch(yylineno); //TODO check
+						else if ($1->type != $4 ->type && ($1->type != "INT" || $4->type != "BYTE")) {
+						    errorMismatch(yylineno); //TODO check
 							exit(0);
 						}
                         newVariable = variableEntry($2->name, $1->type, offsets.top());
@@ -216,8 +220,8 @@ Statement		:	LBRACE {
 							errorUndef(yylineno, $1->name);
 							exit(0);
 						}
-						else if (var->type != $3 ->type && (var->type != "INT" || $3->type != "BOOL")) {
-							errorMismatch(yylineno); 
+						else if (var->type != $3 ->type && (var->type != "INT" || $3->type != "BYTE")) {
+							errorMismatch(yylineno);
 							exit(0);
 						}
 					}
@@ -230,7 +234,11 @@ Statement		:	LBRACE {
 					}
 				|	RETURN Exp SC {
 						if (scopes.top()->currentFunc->type.returnType != $2->type && (scopes.top()->currentFunc->type.returnType != "INT" || $2->type != "BYTE")){
-							errorMismatch(yylineno);
+						    errorMismatch(yylineno);
+							exit(0);
+						}
+						else if(scopes.top()->currentFunc->type.returnType == "VOID"){
+						    errorMismatch(yylineno);
 							exit(0);
 						}
 					}
@@ -238,7 +246,7 @@ Statement		:	LBRACE {
 				|	IF LPAREN CHECK_IF_BOOL RPAREN ADD_SCOPE Statement REMOVE_SCOPE
 				|	WHILE LPAREN Exp {
 						if ($3->type != "BOOL") {
-							errorMismatch(yylineno);
+						    errorMismatch(yylineno);
 							exit(0);
 						}
 					} RPAREN {
@@ -318,7 +326,13 @@ Exp 			:	LPAREN Exp RPAREN {$$= $2;}
 						$$ = $1; 
 					}
 				|	NUM {$$ = new variableEntry("", "INT");}
-				|	NUM B {$$ = new variableEntry("", "BYTE");}
+				|	NUM B {
+					    if(!($1->value >= 0 && $1->value <= 255)){
+						    errorByteTooLarge(yylineno, std::to_string($1->value));
+						    exit(0);
+						}
+				        $$ = new variableEntry("", "BYTE");
+				    }
 				|	STRING {$$ = new variableEntry("", "STRING");}
 				|	TRUE {$$ = new variableEntry("", "BOOL");}
 				|	FALSE {$$ = new variableEntry("", "BOOL");}
@@ -329,7 +343,7 @@ Exp 			:	LPAREN Exp RPAREN {$$= $2;}
 				|	Exp RELATION Exp {$$ = dealwithBoolOutput(vecstr{"BYTE", "INT"}, $1, $3);}
 				|	LPAREN Type RPAREN Exp { 
 						if ($2->type != "INT") { // CONVERSION IS NOT TO INT
-							errorMismatch(yylineno); //TODO - is this the right error?
+						    errorMismatch(yylineno); //TODO - is this the right error?
 							exit(0);
 						} //TODO - make sure all enum assignments get requested value.
 
@@ -359,7 +373,7 @@ REMOVE_SCOPE 	:	{
 
 CHECK_IF_BOOL 	:	Exp {
 					if ($1->type != "BOOL") {
-							errorMismatch(yylineno);
+						    errorMismatch(yylineno);
 							exit(0);
 						}
 					};
@@ -508,7 +522,7 @@ int getEnumValue(const vector<string>& enumerations, const string& name) {
 }
 
 YYSTYPE dealwithBoolOutput(vector<string> check_for, YYSTYPE left, YYSTYPE right) {
-	if (right && !isInVector(check_for, left->type)) {
+	if (right && !isInVector(check_for, right->type)) {
 		errorMismatch(yylineno);
 		exit(0);
 	}
@@ -516,11 +530,12 @@ YYSTYPE dealwithBoolOutput(vector<string> check_for, YYSTYPE left, YYSTYPE right
 		errorMismatch(yylineno);
 		exit(0);
 	}
+
 	return new variableEntry("", "BOOL");
 }
 
 YYSTYPE dealWithBinop(YYSTYPE left, YYSTYPE right) {
-	if ((left->type != "INT" && left->type != "BYTE") || (right->type != "INT" && right->type != "BYTE")) {
+	if ((left->type != "INT" && right->type != "BYTE") || (left->type != "INT" && right->type != "BYTE")) {
 		errorMismatch(yylineno); //TODO check
 		exit(0);
 	}
