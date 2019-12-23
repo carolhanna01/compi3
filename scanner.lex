@@ -3,8 +3,8 @@
 /* Declarations section */
 #include <stdio.h>
 #include "scopes.h"
-#include "parser.tab.hpp"
 #include "hw3_output.hpp"
+#include "parser.tab.hpp"
 
 using namespace output;
 using namespace scopeTables;

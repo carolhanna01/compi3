@@ -1,16 +1,13 @@
 %{
-
 	/* Declarations section */
-	#include "hw3_output.hpp"
-	#include "scopes.h"
-
 	#include <iostream>
 	#include <stdlib.h>
-	#include <cstring>
 	#include <algorithm>
+	#include "scopes.h"
+
 	using namespace output;
 	using namespace scopeTables;
-	
+
 	extern int yylex();
 	int yyerror(const char * message);
 
@@ -21,16 +18,17 @@
 	variableEntry newVariable = variableEntry();
 	enumEntry newEnum = enumEntry();
 
-	YYSTYPE dealWithBinop(YYSTYPE left, YYSTYPE right);
-
-	YYSTYPE dealwithBoolOutput(string check_for, YYSTYPE left,  YYSTYPE right = NULL);
-    enumEntry* enumSearch(stack<Scope*> *scopes, string name);
 	variableEntry* variableSearch(stack<Scope*> *scopes, string name);
-	bool similarParameters(const vector<string>& expected, const vector<string>& actual);
+    enumEntry* enumSearch(stack<Scope*> *scopes, string name);
 	enumEntry* enumSearchWithEnumeration(stack<Scope*> *scopes, string enumeration);
+	bool similarParameters(const vector<string>& expected, const vector<string>& actual);
 	int yyerror(const char * message);
 	int getEnumValue(const vector<string>& enumerations, const string& name);
+	YYSTYPE dealWithBinop(YYSTYPE left, YYSTYPE right);
+	YYSTYPE dealwithBoolOutput(string check_for, YYSTYPE left,  YYSTYPE right = NULL);
 
+	void addScope (stack<Scope*>& scopes, stack<int>& offsets);
+	void removeScope (stack<Scope*>& scopes, stack<int>& offsets);
 
 %}
 
@@ -149,7 +147,7 @@ Statement		:	LBRACE {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
-                        newVariable= variableEntry($2->name, $1->type, offsets.top())
+                        newVariable = variableEntry($2->name, $1->type, offsets.top());
 						scopes.top()->insertVariable(newVariable);
 						offsets.top()++;
 					}
@@ -162,7 +160,7 @@ Statement		:	LBRACE {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
-                        newVariable= variableEntry($2->name, $1->type, offsets.top())
+                        newVariable= variableEntry($2->name, $1->type, offsets.top());
 						scopes.top()->insertVariable(newVariable);
 						offsets.top()++;
 					}
@@ -177,7 +175,7 @@ Statement		:	LBRACE {
 							errorMismatch(yylineno); //TODO check
 							exit(0);
 						}
-                        newVariable= variableEntry($2->name, $1->type, offsets.top())
+                        newVariable= variableEntry($2->name, $1->type, offsets.top());
 						scopes.top()->insertVariable(newVariable);
 						offsets.top()++;
 					}
@@ -201,7 +199,7 @@ Statement		:	LBRACE {
 						offsets.top()++;
 					}
 				|	ID ASSIGN Exp SC {
-						variableEntry* var = variableSearch(scopes, $1->name);
+						variableEntry* var = variableSearch(&scopes, $1->name);
 						if (!var) {
 							errorUndef(yylineno, $1->name);
 							exit(0);
@@ -233,7 +231,11 @@ Statement		:	LBRACE {
 						addScope(scopes, offsets);
 					} Statement {
 						removeScope(scopes, offsets);
-					} ELSE {addScope(scopes, offsets);} Statement {}
+					} ELSE {
+						addScope(scopes, offsets);
+					} Statement {
+						removeScope(scopes, offsets);
+					}
 				|	IF LPAREN Exp {
 						if ($3->type != "BOOL") {
 							errorMismatch(yylineno);
@@ -462,14 +464,14 @@ int getEnumValue(const vector<string>& enumerations, const string& name) {
 	int val= 0;
 	vector<string>::const_iterator it;
 	for (it = enumerations.cbegin(); it != enumerations.cend(); ++it) {
-		if (!strcmp(*it, name)) {
+		if (!name.compare(*it)) {
 			return val;
 		}
 		++val;
 	}
 }
 
-YYSTYPE dealwithBoolOutput(string check_for, YYSTYPE left,  YYSTYPE right= NULL) {
+YYSTYPE dealwithBoolOutput(string check_for, YYSTYPE left, YYSTYPE right) {
 	if (right && right->type != check_for) {
 		errorMismatch(yylineno);
 		exit(0);
@@ -488,4 +490,17 @@ YYSTYPE dealWithBinop(YYSTYPE left, YYSTYPE right) {
 	}
 	string type = left->type == "BYTE" && right->type == "BYTE" ? "BYTE" : "INT";
 	return new variableEntry("", type);
+}
+
+void addScope (stack<Scope*>& scopes, stack<int>& offsets){
+    scopes.push(new Scope(*scopes.top()));
+    offsets.push(offsets.top());
+}
+
+void removeScope (stack<Scope*>& scopes, stack<int>& offsets){
+    endScope();
+    scopes.top()->printVariables();
+    scopes.top()->printEnums();
+    scopes.pop();
+    offsets.pop();
 }

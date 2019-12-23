@@ -1,14 +1,14 @@
+#ifndef SCOPES_H_INCLUDED
+#define SCOPES_H_INCLUDED 
 
 //
 // Created by Carol Hanna on 15/12/2019.
 //
 
-
 #include <iostream>
 #include <stack>
 #include <vector>
 #include "hw3_output.hpp"
-extern int yylineno;
 
 using namespace std;
 using namespace output;
@@ -17,12 +17,13 @@ using namespace output;
 #define BOOL_SIZE 1
 #define YYSTYPE scopeTables::variableEntry*
 
+extern int yylineno;
 
 namespace scopeTables{
     template <typename t>
         class entry {
             public:
-            const string &name;
+            string name;
             t type;
             int offset;
             int value;
@@ -149,19 +150,6 @@ namespace scopeTables{
 
 
         };
-
-    void addScope (stack<Scope*> scopes, stack<int> offsets){
-        scopes.push(new Scope(*scopes.top()));
-        offsets.push(offsets.top());
-    }
-
-    void removeScope (stack<Scope*> scopes, stack<int> offsets){
-        endScope();
-        scopes.top()->printVariables();
-        scopes.top()->printEnums();
-        scopes.pop();
-        offsets.pop();
-    }
-
-
 }
+
+#endif
