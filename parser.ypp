@@ -386,14 +386,20 @@ main(){
 	printiType.addParam("INT");
 	functionEntry  printiEntry = functionEntry("printi", printiType);
 	scopes.top()->insertFunction(printiEntry);
-	
-	yyparse();
-	functionEntry* checkMain = scopes.top()->getFunction("main");
+	//printScopes(&scopes);
 
+	yyparse();
+
+	functionEntry* checkMain = scopes.top()->getFunction("main");
 	if (checkMain == NULL || checkMain->type.paramTypes.size()!=0 || checkMain->type.returnType != "VOID"){
 		errorMainMissing();
 		return 0;
 	}
+	// GLOBAL SCOPE DE-INIT
+	Scope* global_scope = scopes.top();
+	removeScope(scopes, offsets);
+	global_scope->printFunctions();
+	return 0;
 }
 
 int yyerror(const char * message) {
