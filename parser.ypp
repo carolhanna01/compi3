@@ -83,7 +83,8 @@ Funcs			:	/*epsilon*/
 				|	FuncDecl Funcs;	
 			
 FuncDecl		:	RetType ID {
-						if (scopes.top()->getVariable($2->name) || scopes.top()->getFunction($2->name)) {
+						if (scopes.top()->getVariable($2->name) || scopes.top()->getFunction($2->name) ||
+						    enumSearch(&scopes, $2->name) ||  enumIdentifierSearch(&scopes, $2->name)) {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
