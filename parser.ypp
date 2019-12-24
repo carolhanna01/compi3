@@ -207,7 +207,7 @@ Statement		:	LBRACE {
 						offsets.top()++;
 					}
 				|	EnumType ID ASSIGN Exp SC {
-						enumEntry* enum_entry = enumSearch(&scopes, $1->name);
+						enumEntry* enum_entry = enumSearch(&scopes, $1->type);
 						if (!enum_entry) {
 							errorUndefEnum(yylineno, $2->name);
 							exit(0);
@@ -216,7 +216,7 @@ Statement		:	LBRACE {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
-						else if (isInString($4->type, "enum")) {
+						else if (!isInString($4->type, "enum")) {
 							errorUndefEnumValue(yylineno, $2->name);
 							exit(0);
 						}
