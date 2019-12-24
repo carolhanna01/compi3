@@ -220,11 +220,11 @@ Statement		:	LBRACE {
 							errorUndefEnum(yylineno, $2->name);
 							exit(0);
 						}
-						else if (variableSearch(&scopes, $2->name) || isInVector(enum_entry->type.values, $2->name)) {
+						else if (variableSearch(&scopes, $2->name)) {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
-						else if (!isInString($4->type, "enum")) {
+						else if (!isInString($4->type, "enum")|| !isInVector(enum_entry->type.values, "enum "+ $4->name)) {
 							errorUndefEnumValue(yylineno, $2->name);
 							exit(0);
 						}
