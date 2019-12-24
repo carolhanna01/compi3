@@ -83,8 +83,7 @@ Funcs			:	/*epsilon*/
 				|	FuncDecl Funcs;	
 			
 FuncDecl		:	RetType ID {
-						if (scopes.top()->getVariable($2->name) || scopes.top()->getFunction($2->name) ||
-						    enumSearch(&scopes, $2->name) ||  enumIdentifierSearch(&scopes, $2->name)) {
+						if (scopes.top()->getVariable($2->name) || scopes.top()->getFunction($2->name)) {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
@@ -103,7 +102,7 @@ Enums			:	/*epsilon*/{};
 				|	EnumDecl Enums {};
 
 EnumDecl		:	ENUM ID {
-						if (enumSearch(&scopes, $2->name) || variableSearch(&scopes, $2->name)) {
+						if (enumSearch(&scopes, "enum " + $2->name) || variableSearch(&scopes, $2->name)) {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
@@ -122,7 +121,7 @@ FormalsList		:	FormalDecl
 				|	FormalDecl COMMA FormalsList;
 	
 FormalDecl 		:	Type ID {
-                        if (variableSearch(&scopes, $1->name) || enumSearch(&scopes, $1->name) || functionSearch(&scopes, $2->name)){
+                        if (variableSearch(&scopes, $1->name) || enumSearch(&scopes, "enum " + $1->name) || functionSearch(&scopes, $2->name)){
                             errorDef(yylineno, $2->name);
                             exit(0);
                         }
@@ -144,7 +143,7 @@ FormalDecl 		:	Type ID {
 
 EnumeratorList	:	Enumerator {
 					vector<string>& enum_values = newEnum.type.values; 
-                    if (variableSearch(&scopes, $1->name) || enumSearch(&scopes, $1->name) || enumIdentifierSearch(&scopes, $1->name) || isInVector(enum_values, $1->name) || newEnum.name == "enum " + $1->name) {
+                    if (variableSearch(&scopes, $1->name) || enumSearch(&scopes, "enum " + $1->name) || enumIdentifierSearch(&scopes, $1->name) || isInVector(enum_values, $1->name) || newEnum.name == "enum " + $1->name) {
                         errorDef(yylineno, $1->name);
                         exit(0);
                      }
@@ -152,7 +151,7 @@ EnumeratorList	:	Enumerator {
                     }
 				|	EnumeratorList COMMA Enumerator { 
 						vector<string>& enum_values = newEnum.type.values;
-						if (variableSearch(&scopes, $3->name) || enumSearch(&scopes, $3->name) || enumIdentifierSearch(&scopes, $3->name) || isInVector(enum_values, $3->name) || newEnum.name == "enum " + $3->name) {
+						if (variableSearch(&scopes, $3->name) || enumSearch(&scopes, "enum " + $3->name) || enumIdentifierSearch(&scopes, $3->name) || isInVector(enum_values, $3->name) || newEnum.name == "enum " + $3->name) {
 							errorDef(yylineno, $3->name);
 							exit(0);
 						}
@@ -170,7 +169,7 @@ Statement		:	LBRACE {
 						removeScope(scopes, offsets);
 					} RBRACE
 				|	Type ID SC {
-						if (variableSearch(&scopes, $2->name) || functionSearch(&scopes, $2->name) || enumSearch(&scopes, $2->name) || enumIdentifierSearch(&scopes, $2->name)) {
+						if (variableSearch(&scopes, $2->name) || functionSearch(&scopes, $2->name) || enumSearch(&scopes, "enum " + $2->name) || enumIdentifierSearch(&scopes, $2->name)) {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
@@ -182,7 +181,7 @@ Statement		:	LBRACE {
 						if (variableSearch(&scopes, $2->name) || enumIdentifierSearch(&scopes, $2->name)) {
 							errorDef(yylineno, $2->name);
 							exit(0);
-						}else if (!enumSearch(&scopes, $1->type)){
+						} else if (!enumSearch(&scopes, $1->type)){
 							errorUndefEnum(yylineno, $1->type.substr(5));
 							exit(0);
 						}
@@ -479,14 +478,7 @@ enumEntry* enumSearch(stack<Scope*> *scopes, string name) {
 	if (scopes->empty()) {
 		return NULL;
 	}
-	/* debug
-	cout << "input name: " + name << endl;
-	for (enumEntry e : scopes->top()->enums){
-	    cout << e.name << endl;
-	}
-    */
-
-	enumEntry* entry = scopes->top()->getEnum("enum " + name);
+	enumEntry* entry = scopes->top()->getEnum(name);
 	if (entry) {
 		return entry;
 	}
