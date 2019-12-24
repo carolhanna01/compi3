@@ -127,7 +127,8 @@ FormalDecl 		:	Type ID {
                             exit(0);
                         }
                         if (variableSearch(&scopes, $2->name)  || functionSearch(&scopes, $2->name)
-                        || ($2->name == scopes.top()->currentFunc->name) || (enumSearch(&scopes, $2->name))){
+                        || ($2->name == scopes.top()->currentFunc->name) || (enumSearch(&scopes, "enum " + $2->name))
+                               || enumIdentifierSearch(&scopes, $2->name)){
                             errorDef(yylineno, $2->name);
                             exit(0);
                         }
