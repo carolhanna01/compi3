@@ -174,8 +174,11 @@ Statement		:	LBRACE {
 						offsets.top()++;
 					}
 				|	EnumType ID SC {
-						if (enumSearch(&scopes, $1->name) || variableSearch(&scopes, $2->name) || enumIdentifierSearch(&scopes, $2->name)) { //todo: check enum iden in all enum vecs
+						if (variableSearch(&scopes, $2->name) || enumIdentifierSearch(&scopes, $2->name)) {
 							errorDef(yylineno, $2->name);
+							exit(0);
+						}else if (!enumSearch(&scopes, $1->type)){
+							errorUndefEnum(yylineno, $1->type.substr(5));
 							exit(0);
 						}
                         newVariable = variableEntry($2->name, $1->type, offsets.top());
@@ -471,7 +474,14 @@ enumEntry* enumSearch(stack<Scope*> *scopes, string name) {
 	if (scopes->empty()) {
 		return NULL;
 	}
-	enumEntry* entry = scopes->top()->getEnum("enum " + name); 
+	/* debug
+	cout << "input name: " + name << endl;
+	for (enumEntry e : scopes->top()->enums){
+	    cout << e.name << endl;
+	}
+    */
+
+	enumEntry* entry = scopes->top()->getEnum("enum " + name);
 	if (entry) {
 		return entry;
 	}
