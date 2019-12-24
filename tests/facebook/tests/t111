@@ -1,12 +1,3 @@
 ---end scope---
 d INT -1
----end scope---
-foo INT 0
----end scope---
----end scope---
-enum A {a1,a2,a3}
-print (STRING)->VOID 0
-printi (INT)->VOID 0
-foo (INT)->VOID 0
-foo1 ()->VOID 0
-main ()->VOID 0
+line 8: identifier foo is already defined

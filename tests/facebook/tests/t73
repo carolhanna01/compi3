@@ -1,2 +1,2 @@
 ---end scope---
-line 2: type mismatch
+line 2: identifier foo is already defined

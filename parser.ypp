@@ -220,8 +220,12 @@ Statement		:	LBRACE {
 						if (!var) {
 							errorUndef(yylineno, $1->name);
 							exit(0);
+						} 
+						else if (isInString(var->type, "enum") && $3->type != var->name) {
+							errorUndefEnumValue(yylineno, $1->name);
+							exit(0);
 						}
-						else if (var->type != $3 ->type && (var->type != "INT" || $3->type != "BYTE")) {
+						else if (var->type != $3->type && (var->type != "INT" || $3->type != "BYTE")) {
 							errorMismatch(yylineno);
 							exit(0);
 						}
@@ -319,7 +323,7 @@ Exp 			:	LPAREN Exp RPAREN {$$= $2;}
 						variableEntry* var = variableSearch(&scopes, $1->name);
 						if (enum_entry) {
 							int enum_value = getEnumValue(enum_entry->type.values, $1->name);
-							$$ = new variableEntry("", "MUL", 0, enum_value);
+							$$ = new variableEntry("", enum_entry->name, 0, enum_value);
 						}
 						else if (var) {
 							$$ = new variableEntry(var->name, var->type, var->offset, var->value);

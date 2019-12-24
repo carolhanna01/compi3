@@ -1,4 +1,3 @@
 ---end scope---
 a INT -1
----end scope---
-Program has no 'void main()' function
+line 5: identifier foo is already defined

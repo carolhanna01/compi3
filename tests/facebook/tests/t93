@@ -1,2 +1,2 @@
 ---end scope---
-line 10: type mismatch
+line 10: assignment of undefined value to x
