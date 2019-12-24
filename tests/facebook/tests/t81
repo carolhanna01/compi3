@@ -1,1 +1,1 @@
-line 5: enum x is not defined
+line 5: assignment of undefined value to x

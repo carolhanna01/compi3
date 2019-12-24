@@ -1,2 +1,2 @@
 ---end scope---
-line 9: enum x is not defined
+line 9: assignment of undefined value to x

@@ -1,9 +1,0 @@
-
-for file in `ls tests/facebook/tests/ | grep in | cut -d"." -f1`; do
-	./hw3 < tests/facebook/tests/${file}.in > tests/facebook/tests/${file}
-	DIFF=$(diff tests/facebook/tests/$file tests/facebook/tests/${file}.out)
-    if [ "$DIFF" != "" ]
-    then
-        echo ${file} "failed"
-    fi
-done
