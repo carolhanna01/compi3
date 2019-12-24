@@ -1,9 +1,0 @@
----end scope---
-c enum C 0
----end scope---
----end scope---
-enum A {a1,a2,a3}
-print (STRING)->VOID 0
-printi (INT)->VOID 0
-foo ()->VOID 0
-main ()->VOID 0
