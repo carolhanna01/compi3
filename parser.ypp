@@ -106,6 +106,7 @@ EnumDecl		:	ENUM ID {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
+						newEnum.name = "enum " + $2->name;
 					} LBRACE EnumeratorList RBRACE SC {
 						scopes.top()->insertEnum(newEnum);
 					};
@@ -137,7 +138,8 @@ FormalDecl 		:	Type ID {
 					};
 
 EnumeratorList	:	Enumerator {
-                    if (variableSearch(&scopes, $1->name) || enumSearch(&scopes, $1->name) || newEnum.name == $1->name) {
+					vector<string>& enum_values = newEnum.type.values; 
+                    if (variableSearch(&scopes, $1->name) || enumSearch(&scopes, $1->name) || enumIdentifierSearch(&scopes, $1->name) || isInVector(enum_values, $1->name) || newEnum.name == "enum " + $1->name) {
                         errorDef(yylineno, $1->name);
                         exit(0);
                      }
@@ -145,7 +147,7 @@ EnumeratorList	:	Enumerator {
                     }
 				|	EnumeratorList COMMA Enumerator { 
 						vector<string>& enum_values = newEnum.type.values;
-						if (isInVector(enum_values, $3->name ) || enumIdentifierSearch(&scopes, $3->name)) {
+						if (variableSearch(&scopes, $3->name) || enumSearch(&scopes, $3->name) || enumIdentifierSearch(&scopes, $3->name) || isInVector(enum_values, $3->name) || newEnum.name == "enum " + $3->name) {
 							errorDef(yylineno, $3->name);
 							exit(0);
 						}
@@ -153,7 +155,7 @@ EnumeratorList	:	Enumerator {
 					};		
 
 Enumerator		:	ID
-	
+
 Statements		:	Statement
 				|	Statements Statement;
 
@@ -201,7 +203,7 @@ Statement		:	LBRACE {
 							errorUndefEnum(yylineno, $2->name);
 							exit(0);
 						}
-						else if (variableSearch(&scopes, $2->name) || enumIdentifierSearch(&scopes, $2->name)) {
+						else if (variableSearch(&scopes, $2->name) || isInVector(enum_entry->type.values, $2->name)) {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
@@ -210,7 +212,6 @@ Statement		:	LBRACE {
 							exit(0);
 						}
                         newVariable = variableEntry($2->name, $1->type, offsets.top(), $3->value);
-
 						scopes.top()->insertVariable(newVariable);
 						offsets.top()++;
 					}
@@ -313,14 +314,20 @@ Exp 			:	LPAREN Exp RPAREN {$$= $2;}
 				|	Exp DIV Exp {$$ = dealWithBinop($1, $2);}
 				|	Exp ADD Exp {$$ = dealWithBinop($1, $2);}
 				|	Exp SUB Exp {$$ = dealWithBinop($1, $2);}
-				|	ID { 
-
+				|	ID {
+						enumEntry* enum_entry = enumIdentifierSearch(&scopes, $1->name);
 						variableEntry* var = variableSearch(&scopes, $1->name);
-						if (!var) {
+						if (enum_entry) {
+							int enum_value = getEnumValue(enum_entry->type.values, $1->name);
+							$$ = new variableEntry("", "MUL", 0, enum_value);
+						}
+						else if (var) {
+							$$ = new variableEntry(var->name, var->type, var->offset, var->value);
+						}
+						else {
 							errorUndef(yylineno, $1->name);
 							exit(0);
 						}
-						$$ = new variableEntry(var->name, var->type, var->offset, var->value);
 					}  
 				|	Call { 
 						$$ = $1; 
@@ -346,7 +353,6 @@ Exp 			:	LPAREN Exp RPAREN {$$= $2;}
 						    errorMismatch(yylineno); //TODO - is this the right error?
 							exit(0);
 						} //TODO - make sure all enum assignments get requested value.
-
 						variableEntry* var = variableSearch(&scopes, $4->name); //TODO - below assumes a variable cant have an enum name. True?
 						enumEntry* enum_entry = enumIdentifierSearch(&scopes, $4->name); //TODO - make sure i cant insert same enum values for more than one enum.
 						if (var && isInString(var->type, "enum")) { // CONVERSION IS FROM VARIABLE
@@ -403,7 +409,6 @@ main(){
 	printiType.addParam("INT");
 	functionEntry  printiEntry = functionEntry("printi", printiType);
 	scopes.top()->insertFunction(printiEntry);
-	//printScopes(&scopes);
 
 	yyparse();
 
@@ -462,7 +467,7 @@ enumEntry* enumSearch(stack<Scope*> *scopes, string name) {
 	if (scopes->empty()) {
 		return NULL;
 	}
-	enumEntry* entry = scopes->top()->getEnum(name); 
+	enumEntry* entry = scopes->top()->getEnum("enum " + name); 
 	if (entry) {
 		return entry;
 	}
@@ -478,18 +483,14 @@ enumEntry* enumIdentifierSearch(stack<Scope*> *scopes, string name) {
 	if (scopes->empty()) {
 		return NULL;
 	}
-	vector<enumEntry> currEnums = scopes->top()->enums;
-	for(enumEntry& e: currEnums){
-	    vector<string> currValues = e.type.values;
-	    for(string& s : currValues){
-	        if(s == name)
-	            return &e;
-	    }
+	enumEntry* entry = scopes->top()->getEnumWithEnumeration(name); 
+	if (entry) {
+		return entry;
 	}
 
 	Scope* s = scopes->top();
 	scopes->pop();
-	enumEntry* entry = enumIdentifierSearch(scopes, name);
+	entry = enumIdentifierSearch(scopes, name);
 	scopes->push(s);
 	return entry;
 }
@@ -570,6 +571,8 @@ void printScopesAux(stack<Scope*>* scopes) {
 	top->printVariables();
 	cout << "\tFuncs:" << endl;
 	top->printFunctions();
+	cout << "\tEnums:" << endl;
+	top->printEnums();
 	cout << "SCOPE END ---------" << endl;
 	scopes->pop();
 	printScopesAux(scopes);

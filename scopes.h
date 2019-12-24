@@ -148,7 +148,7 @@ namespace scopeTables{
             }
             void printEnums(){
                 for(enumEntry e : enums)
-                    printEnumType(e.name, e.type.values);
+                    printEnumType(e.name.substr(5), e.type.values);
             }
 
 
