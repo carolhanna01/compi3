@@ -83,7 +83,8 @@ Funcs			:	/*epsilon*/
 				|	FuncDecl Funcs;	
 			
 FuncDecl		:	RetType ID {
-						if (scopes.top()->getVariable($2->name) || scopes.top()->getFunction($2->name)) {
+						if (scopes.top()->getVariable($2->name) || scopes.top()->getFunction($2->name) || enumIdentifierSearch(&scopes, $2->name)
+						    || enumSearch(&scopes, $2->name)) {
 							errorDef(yylineno, $2->name);
 							exit(0);
 						}
@@ -121,7 +122,8 @@ FormalsList		:	FormalDecl
 				|	FormalDecl COMMA FormalsList;
 	
 FormalDecl 		:	Type ID {
-                        if (variableSearch(&scopes, $1->name) || enumSearch(&scopes, "enum " + $1->name) || functionSearch(&scopes, $2->name)){
+                        if (variableSearch(&scopes, $2->name) || enumSearch(&scopes, "enum " + $1->name) || functionSearch(&scopes, $2->name)
+                        || ($2->name == scopes.top()->currentFunc->name)){
                             errorDef(yylineno, $2->name);
                             exit(0);
                         }
@@ -135,7 +137,7 @@ FormalDecl 		:	Type ID {
 				        if(!enumSearch(&scopes, $1->type)){
 							errorUndefEnum(yylineno, $1->type.substr(5));
 							exit(0);
-				        }
+							}
 						newVariable = variableEntry($2->name, $1->type, funcParamOffset--);
 						scopes.top()->insertVariable(newVariable);
 						scopes.top()->currentFunc->type.addParam($1->type);
