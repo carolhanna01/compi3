@@ -1,0 +1,14 @@
+#!/bin/bash
+
+if [[ $1 == "" || $2 == "" ]]; then
+	echo Please provide a source folder and a test...
+	exit
+fi
+
+./hw3 < tests/$1/$2.in > tests/$1/$2
+DIFF=$(diff tests/$1/$2 tests/$1/$2.out)
+if [ "$DIFF" != "" ]; then
+		echo $DIFF
+	   	echo $2 "failed"
+fi
+

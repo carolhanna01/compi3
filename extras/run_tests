@@ -1,9 +1,15 @@
+#!/bin/bash
 
-for file in `ls tests/facebook/tests/ | grep in | cut -d"." -f1`; do
-	./hw3 < tests/facebook/tests/${file}.in > tests/facebook/tests/${file}
-	DIFF=$(diff tests/facebook/tests/$file tests/facebook/tests/${file}.out)
-    if [ "$DIFF" != "" ]
-    then
+if [[ $1 == "" ]]; then
+	echo Please provide a folder to test...
+	exit
+fi
+
+for file in `ls tests/$1/ | grep in | cut -d"." -f1`; do
+	./hw3 < tests/$1/${file}.in > tests/$1/${file}
+	DIFF=$(diff tests/$1/${file} tests/$1/${file}.out)
+    if [[ "$DIFF" != "" ]]; then
+	   	# echo $DIFF
         echo ${file} "failed"
     fi
 done
